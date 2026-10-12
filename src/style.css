@@ -385,3 +385,20 @@ body.orientation-blocked .app-shell{filter:blur(5px);pointer-events:none;user-se
 #cinemaScreen .cinema-top{position:relative;z-index:2;flex:0 0 auto}
 #cinemaScreen video{flex:1 1 auto;width:100%;height:calc(100% - 58px);max-width:100%;max-height:calc(100dvh - 70px);min-height:0;object-fit:contain;margin:auto}
 #cinemaScreen .cinema-fallback{z-index:3}
+
+/* Keep the fight/ready action visible while the fighter roster scrolls. */
+.select-screen.active{display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden}
+.select-topline{flex:0 0 48px}
+.select-layout,.select-layout.two-player{flex:1 1 auto;height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.select-actions{position:relative;z-index:5;display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:10px;min-height:66px;padding:8px 12px max(8px,env(safe-area-inset-bottom));border-top:1px solid rgba(231,173,68,.22);background:linear-gradient(180deg,rgba(7,10,15,.9),rgba(7,10,15,.99));box-shadow:0 -8px 24px rgba(0,0,0,.24)}
+.select-actions .primary-button.wide{width:min(320px,100%);min-height:48px;margin:0;padding:13px 18px}
+.select-actions [hidden]{display:none!important}
+@media(max-width:720px){
+ .select-screen.active{padding:0 8px 0}
+ .select-topline{flex-basis:44px;min-height:44px}
+ .select-layout,.select-layout.two-player{grid-template-rows:clamp(112px,22dvh,165px) auto;align-content:start}
+ .select-actions{width:100%;min-height:72px;padding:8px 8px max(10px,env(safe-area-inset-bottom))}
+ .select-actions .primary-button.wide{width:100%;min-height:54px;border:1px solid rgba(255,236,196,.34);border-radius:9px;font-size:12px;letter-spacing:.1em;box-shadow:0 5px 18px rgba(231,173,68,.2)}
+ .select-help{display:none}
+ .roster-panel{justify-content:flex-start;padding:6px 0 12px}
+}
