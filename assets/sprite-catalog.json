@@ -1,0 +1,752 @@
+{
+  "Daniel": {
+    "slug": "daniel",
+    "atlas": "assets/fighters/daniel/atlas.png",
+    "metadata": "assets/fighters/daniel/atlas.json",
+    "frameCount": 92,
+    "animations": {
+      "idle": [
+        "s1-r01-c01",
+        "s1-r01-c02",
+        "s1-r01-c03",
+        "s1-r01-c04"
+      ],
+      "walk": [
+        "s1-r02-c01",
+        "s1-r02-c02",
+        "s1-r02-c03",
+        "s1-r02-c04"
+      ],
+      "crouch": [
+        "s1-r03-c01",
+        "s1-r03-c02",
+        "s1-r03-c03",
+        "s1-r03-c04"
+      ],
+      "light": [
+        "s2-r01-c01",
+        "s2-r01-c02",
+        "s2-r01-c03",
+        "s2-r01-c04"
+      ],
+      "uppercut": [
+        "s2-r02-c01",
+        "s2-r02-c02",
+        "s2-r02-c03",
+        "s2-r02-c04"
+      ],
+      "kick": [
+        "s2-r03-c01",
+        "s2-r03-c02",
+        "s2-r03-c03",
+        "s2-r03-c04"
+      ],
+      "low": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "airAttack": [
+        "s2-r06-c01",
+        "s2-r06-c02",
+        "s2-r06-c03",
+        "s2-r06-c04"
+      ],
+      "guardHigh": [
+        "s3-r01-c01",
+        "s3-r01-c02",
+        "s3-r01-c03",
+        "s3-r01-c04"
+      ],
+      "guardLow": [
+        "s3-r02-c01",
+        "s3-r02-c02",
+        "s3-r02-c03",
+        "s3-r02-c04"
+      ],
+      "hurt": [
+        "s3-r03-c01",
+        "s3-r03-c02",
+        "s3-r03-c03",
+        "s3-r03-c04"
+      ],
+      "fall": [
+        "s3-r04-c01",
+        "s3-r04-c02",
+        "s3-r04-c03",
+        "s3-r04-c04"
+      ],
+      "getup": [
+        "s3-r05-c01",
+        "s3-r05-c02",
+        "s3-r05-c03",
+        "s3-r05-c04"
+      ],
+      "victory": [
+        "s3-r06-c01",
+        "s3-r06-c02",
+        "s3-r06-c03",
+        "s3-r06-c04"
+      ],
+      "specialBody": [
+        "s4-r01-c01",
+        "s4-r01-c02",
+        "s4-r01-c03",
+        "s4-r01-c04",
+        "s4-r02-c01",
+        "s4-r02-c02",
+        "s4-r02-c03",
+        "s4-r02-c04",
+        "s4-r03-c01",
+        "s4-r03-c02",
+        "s4-r03-c03",
+        "s4-r03-c04"
+      ],
+      "jump": [
+        "s1-r04-c03"
+      ]
+    }
+  },
+  "Diana": {
+    "slug": "diana",
+    "atlas": "assets/fighters/diana/atlas.png",
+    "metadata": "assets/fighters/diana/atlas.json",
+    "frameCount": 86,
+    "animations": {
+      "idle": [
+        "s1-r01-c01",
+        "s1-r01-c02",
+        "s1-r01-c03",
+        "s1-r01-c04"
+      ],
+      "walk": [
+        "s1-r02-c01",
+        "s1-r02-c02",
+        "s1-r02-c03",
+        "s1-r02-c04"
+      ],
+      "crouch": [
+        "s1-r04-c01",
+        "s1-r04-c02",
+        "s1-r04-c03",
+        "s1-r04-c04"
+      ],
+      "light": [
+        "s2-r01-c01",
+        "s2-r01-c02",
+        "s2-r01-c03",
+        "s2-r01-c04"
+      ],
+      "uppercut": [
+        "s2-r02-c01",
+        "s2-r02-c02",
+        "s2-r02-c03",
+        "s2-r02-c04"
+      ],
+      "kick": [
+        "s2-r03-c01",
+        "s2-r03-c02",
+        "s2-r03-c03",
+        "s2-r03-c04"
+      ],
+      "low": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "airAttack": [
+        "s2-r06-c01",
+        "s2-r06-c02",
+        "s2-r06-c03",
+        "s2-r06-c04"
+      ],
+      "guardHigh": [
+        "s3-r01-c01",
+        "s3-r01-c02",
+        "s3-r01-c03",
+        "s3-r01-c04"
+      ],
+      "guardLow": [
+        "s3-r02-c01",
+        "s3-r02-c02",
+        "s3-r02-c03",
+        "s3-r02-c04"
+      ],
+      "hurt": [
+        "s3-r03-c01",
+        "s3-r03-c02",
+        "s3-r03-c03",
+        "s3-r03-c04"
+      ],
+      "fall": [
+        "s3-r04-c03",
+        "s3-r04-c04"
+      ],
+      "getup": [
+        "s3-r05-c01",
+        "s3-r05-c02",
+        "s3-r05-c03",
+        "s3-r05-c04"
+      ],
+      "victory": [
+        "s3-r06-c01",
+        "s3-r06-c02",
+        "s3-r06-c03",
+        "s3-r06-c04"
+      ],
+      "specialBody": [
+        "s4-r01-c01",
+        "s4-r01-c02",
+        "s4-r01-c03",
+        "s4-r01-c04",
+        "s4-r02-c01",
+        "s4-r02-c02",
+        "s4-r02-c03",
+        "s4-r02-c04"
+      ],
+      "jump": [
+        "s1-r05-c02",
+        "s1-r05-c03"
+      ]
+    }
+  },
+  "Kadu": {
+    "slug": "kadu",
+    "atlas": "assets/fighters/kadu/atlas.png",
+    "metadata": "assets/fighters/kadu/atlas.json",
+    "frameCount": 88,
+    "animations": {
+      "idle": [
+        "s1-r01-c01",
+        "s1-r01-c02",
+        "s1-r01-c03",
+        "s1-r01-c04"
+      ],
+      "walk": [
+        "s1-r02-c01",
+        "s1-r02-c02",
+        "s1-r02-c03",
+        "s1-r02-c04"
+      ],
+      "crouch": [
+        "s1-r04-c01",
+        "s1-r04-c02",
+        "s1-r04-c03",
+        "s1-r04-c04"
+      ],
+      "light": [
+        "s2-r01-c01",
+        "s2-r01-c02",
+        "s2-r01-c03",
+        "s2-r01-c04"
+      ],
+      "uppercut": [
+        "s2-r02-c01",
+        "s2-r02-c02",
+        "s2-r02-c03",
+        "s2-r02-c04"
+      ],
+      "kick": [
+        "s2-r03-c01",
+        "s2-r03-c02",
+        "s2-r03-c03",
+        "s2-r03-c04"
+      ],
+      "low": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "airAttack": [
+        "s2-r06-c01",
+        "s2-r06-c02",
+        "s2-r06-c03",
+        "s2-r06-c04"
+      ],
+      "guardHigh": [
+        "s3-r01-c01",
+        "s3-r01-c02",
+        "s3-r01-c03",
+        "s3-r01-c04"
+      ],
+      "guardLow": [
+        "s3-r02-c01",
+        "s3-r02-c02",
+        "s3-r02-c03",
+        "s3-r02-c04"
+      ],
+      "hurt": [
+        "s3-r03-c01",
+        "s3-r03-c02",
+        "s3-r03-c03",
+        "s3-r03-c04"
+      ],
+      "fall": [
+        "s3-r04-c01",
+        "s3-r04-c02",
+        "s3-r04-c03",
+        "s3-r04-c04"
+      ],
+      "getup": [
+        "s3-r05-c01",
+        "s3-r05-c02",
+        "s3-r05-c03",
+        "s3-r05-c04"
+      ],
+      "victory": [
+        "s3-r06-c01",
+        "s3-r06-c02",
+        "s3-r06-c03",
+        "s3-r06-c04"
+      ],
+      "specialBody": [
+        "s4-r01-c01",
+        "s4-r01-c02",
+        "s4-r01-c03",
+        "s4-r01-c04",
+        "s4-r02-c01",
+        "s4-r02-c02",
+        "s4-r02-c03",
+        "s4-r02-c04"
+      ],
+      "jump": [
+        "s1-r05-c02",
+        "s1-r05-c03"
+      ]
+    }
+  },
+  "Bruno": {
+    "slug": "bruno",
+    "atlas": "assets/fighters/bruno/atlas.png",
+    "metadata": "assets/fighters/bruno/atlas.json",
+    "frameCount": 89,
+    "animations": {
+      "idle": [
+        "s1-r01-c01",
+        "s1-r01-c02",
+        "s1-r01-c03",
+        "s1-r01-c04"
+      ],
+      "walk": [
+        "s1-r02-c01",
+        "s1-r02-c02",
+        "s1-r02-c03",
+        "s1-r02-c04"
+      ],
+      "crouch": [
+        "s1-r04-c01",
+        "s1-r04-c02",
+        "s1-r04-c03",
+        "s1-r04-c04"
+      ],
+      "light": [
+        "s2-r01-c01",
+        "s2-r01-c02",
+        "s2-r01-c03",
+        "s2-r01-c04"
+      ],
+      "uppercut": [
+        "s2-r02-c01",
+        "s2-r02-c02",
+        "s2-r02-c03",
+        "s2-r02-c04"
+      ],
+      "kick": [
+        "s2-r03-c01",
+        "s2-r03-c02",
+        "s2-r03-c03",
+        "s2-r03-c04"
+      ],
+      "low": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "airAttack": [
+        "s2-r06-c01",
+        "s2-r06-c02",
+        "s2-r06-c03",
+        "s2-r06-c04"
+      ],
+      "guardHigh": [
+        "s3-r01-c01",
+        "s3-r01-c02",
+        "s3-r01-c03",
+        "s3-r01-c04"
+      ],
+      "guardLow": [
+        "s3-r02-c01",
+        "s3-r02-c02",
+        "s3-r02-c03",
+        "s3-r02-c04"
+      ],
+      "hurt": [
+        "s3-r03-c01",
+        "s3-r03-c02",
+        "s3-r03-c03",
+        "s3-r03-c04"
+      ],
+      "fall": [
+        "s3-r04-c01",
+        "s3-r04-c02",
+        "s3-r04-c03",
+        "s3-r04-c04"
+      ],
+      "getup": [
+        "s3-r05-c01",
+        "s3-r05-c02",
+        "s3-r05-c03",
+        "s3-r05-c04"
+      ],
+      "victory": [
+        "s3-r06-c01",
+        "s3-r06-c02",
+        "s3-r06-c03",
+        "s3-r06-c04"
+      ],
+      "specialBody": [
+        "s4-r01-c01",
+        "s4-r01-c02",
+        "s4-r01-c03",
+        "s4-r01-c04",
+        "s4-r02-c01",
+        "s4-r02-c02",
+        "s4-r02-c03",
+        "s4-r02-c03",
+        "s4-r02-c04"
+      ],
+      "jump": [
+        "s1-r05-c02",
+        "s1-r05-c03"
+      ]
+    }
+  },
+  "Christian": {
+    "slug": "christian",
+    "atlas": "assets/fighters/christian/atlas.png",
+    "metadata": "assets/fighters/christian/atlas.json",
+    "frameCount": 88,
+    "animations": {
+      "idle": [
+        "s1-r01-c01",
+        "s1-r01-c02",
+        "s1-r01-c03",
+        "s1-r01-c04"
+      ],
+      "walk": [
+        "s1-r02-c01",
+        "s1-r02-c02",
+        "s1-r02-c03",
+        "s1-r02-c04"
+      ],
+      "crouch": [
+        "s1-r03-c01",
+        "s1-r03-c02",
+        "s1-r03-c03",
+        "s1-r03-c04"
+      ],
+      "guardHigh": [
+        "s3-r01-c01",
+        "s3-r01-c02",
+        "s3-r01-c03",
+        "s3-r01-c04"
+      ],
+      "guardLow": [
+        "s3-r02-c01",
+        "s3-r02-c02",
+        "s3-r02-c03",
+        "s3-r02-c04"
+      ],
+      "hurt": [
+        "s3-r03-c01",
+        "s3-r03-c02",
+        "s3-r03-c03",
+        "s3-r03-c04"
+      ],
+      "fall": [
+        "s3-r05-c01",
+        "s3-r05-c02",
+        "s3-r05-c03",
+        "s3-r05-c04"
+      ],
+      "getup": [
+        "s3-r06-c01",
+        "s3-r06-c02",
+        "s3-r06-c03",
+        "s3-r06-c04"
+      ],
+      "victory": [
+        "s4-r02-c02",
+        "s4-r02-c03",
+        "s4-r02-c04"
+      ],
+      "jump": [
+        "s1-r05-c02",
+        "s1-r05-c03"
+      ],
+      "light": [
+        "s2-r01-c01",
+        "s2-r01-c02",
+        "s2-r01-c03",
+        "s2-r01-c04"
+      ],
+      "uppercut": [
+        "s2-r02-c01",
+        "s2-r02-c02",
+        "s2-r02-c03",
+        "s2-r02-c04"
+      ],
+      "kick": [
+        "s2-r03-c01",
+        "s2-r03-c02",
+        "s2-r03-c03",
+        "s2-r03-c04"
+      ],
+      "low": [
+        "s2-r04-c01",
+        "s2-r04-c02",
+        "s2-r04-c03",
+        "s2-r04-c04"
+      ],
+      "crouchAttack": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "sweep": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "airAttack": [
+        "s2-r06-c01",
+        "s2-r06-c02",
+        "s2-r06-c03",
+        "s2-r06-c04"
+      ],
+      "specialBody": [
+        "s4-r01-c01",
+        "s4-r01-c02",
+        "s4-r01-c03",
+        "s4-r01-c04"
+      ]
+    }
+  },
+  "Luana": {
+    "slug": "luana",
+    "atlas": "assets/fighters/luana/atlas.png",
+    "metadata": "assets/fighters/luana/atlas.json",
+    "frameCount": 88,
+    "animations": {
+      "idle": [
+        "s1-r01-c01",
+        "s1-r01-c02",
+        "s1-r01-c03",
+        "s1-r01-c04"
+      ],
+      "walk": [
+        "s1-r02-c01",
+        "s1-r02-c02",
+        "s1-r02-c03",
+        "s1-r02-c04"
+      ],
+      "crouch": [
+        "s1-r04-c01",
+        "s1-r04-c02",
+        "s1-r04-c03",
+        "s1-r04-c04"
+      ],
+      "light": [
+        "s2-r01-c01",
+        "s2-r01-c02",
+        "s2-r01-c03",
+        "s2-r01-c04"
+      ],
+      "uppercut": [
+        "s2-r02-c01",
+        "s2-r02-c02",
+        "s2-r02-c03",
+        "s2-r02-c04"
+      ],
+      "kick": [
+        "s2-r03-c01",
+        "s2-r03-c02",
+        "s2-r03-c03",
+        "s2-r03-c04"
+      ],
+      "low": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "airAttack": [
+        "s2-r06-c01",
+        "s2-r06-c02",
+        "s2-r06-c03",
+        "s2-r06-c04"
+      ],
+      "guardHigh": [
+        "s3-r01-c01",
+        "s3-r01-c02",
+        "s3-r01-c03",
+        "s3-r01-c04"
+      ],
+      "guardLow": [
+        "s3-r02-c01",
+        "s3-r02-c02",
+        "s3-r02-c03",
+        "s3-r02-c04"
+      ],
+      "hurt": [
+        "s3-r03-c01",
+        "s3-r03-c02",
+        "s3-r03-c03",
+        "s3-r03-c04"
+      ],
+      "fall": [
+        "s3-r04-c01",
+        "s3-r04-c02",
+        "s3-r04-c03",
+        "s3-r04-c04"
+      ],
+      "getup": [
+        "s3-r05-c01",
+        "s3-r05-c02",
+        "s3-r05-c03",
+        "s3-r05-c04"
+      ],
+      "victory": [
+        "s3-r06-c01",
+        "s3-r06-c02",
+        "s3-r06-c03",
+        "s3-r06-c04"
+      ],
+      "specialBody": [
+        "s4-r01-c01",
+        "s4-r01-c02",
+        "s4-r01-c03",
+        "s4-r01-c04",
+        "s4-r02-c01",
+        "s4-r02-c02",
+        "s4-r02-c03",
+        "s4-r02-c04"
+      ],
+      "jump": [
+        "s1-r05-c02",
+        "s1-r05-c03"
+      ]
+    }
+  },
+  "Lorehy_TheBoss": {
+    "slug": "lorehy",
+    "atlas": "assets/fighters/lorehy/atlas.png",
+    "metadata": "assets/fighters/lorehy/atlas.json",
+    "frameCount": 92,
+    "animations": {
+      "idle": [
+        "s1-r01-c01",
+        "s1-r01-c02",
+        "s1-r01-c03",
+        "s1-r01-c04"
+      ],
+      "walk": [
+        "s1-r02-c01",
+        "s1-r02-c02",
+        "s1-r02-c03",
+        "s1-r02-c04"
+      ],
+      "crouch": [
+        "s1-r04-c01",
+        "s1-r04-c02",
+        "s1-r04-c03",
+        "s1-r04-c04"
+      ],
+      "light": [
+        "s2-r01-c01",
+        "s2-r01-c02",
+        "s2-r01-c03",
+        "s2-r01-c04"
+      ],
+      "uppercut": [
+        "s2-r02-c01",
+        "s2-r02-c02",
+        "s2-r02-c03",
+        "s2-r02-c04"
+      ],
+      "kick": [
+        "s2-r03-c01",
+        "s2-r03-c02",
+        "s2-r03-c03",
+        "s2-r03-c04"
+      ],
+      "low": [
+        "s2-r05-c01",
+        "s2-r05-c02",
+        "s2-r05-c03",
+        "s2-r05-c04"
+      ],
+      "airAttack": [],
+      "guardHigh": [
+        "s3-r01-c01",
+        "s3-r01-c02",
+        "s3-r01-c03",
+        "s3-r01-c04"
+      ],
+      "guardLow": [
+        "s3-r02-c01",
+        "s3-r02-c02",
+        "s3-r02-c03",
+        "s3-r02-c04"
+      ],
+      "hurt": [
+        "s3-r03-c01",
+        "s3-r03-c02",
+        "s3-r03-c03",
+        "s3-r03-c04"
+      ],
+      "fall": [
+        "s3-r04-c01",
+        "s3-r04-c02",
+        "s3-r04-c03",
+        "s3-r04-c04"
+      ],
+      "getup": [
+        "s3-r05-c01",
+        "s3-r05-c02",
+        "s3-r05-c03",
+        "s3-r05-c04"
+      ],
+      "victory": [
+        "s3-r06-c01",
+        "s3-r06-c02",
+        "s3-r06-c03",
+        "s3-r06-c04"
+      ],
+      "specialBody": [
+        "s4-r01-c01",
+        "s4-r01-c02",
+        "s4-r01-c03",
+        "s4-r01-c04",
+        "s4-r02-c01",
+        "s4-r02-c02",
+        "s4-r02-c03",
+        "s4-r02-c04",
+        "s4-r03-c01",
+        "s4-r03-c02",
+        "s4-r03-c03",
+        "s4-r03-c04"
+      ],
+      "jump": [
+        "s1-r05-c02",
+        "s1-r05-c03"
+      ]
+    }
+  }
+}

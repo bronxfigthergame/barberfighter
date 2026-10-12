@@ -1,0 +1,38 @@
+{
+  "normal": {
+    "label": "Normal",
+    "reactionMs": 340,
+    "decisionMs": 220,
+    "mistakeChance": 0.20,
+    "attackChance": 0.70,
+    "blockChance": 0.25,
+    "specialChance": 0.28,
+    "preferredDistance": 225,
+    "jumpChance": 0.12,
+    "retreatChance": 0.12
+  },
+  "hard": {
+    "label": "Difícil",
+    "reactionMs": 185,
+    "decisionMs": 140,
+    "mistakeChance": 0.08,
+    "attackChance": 0.84,
+    "blockChance": 0.42,
+    "specialChance": 0.46,
+    "preferredDistance": 208,
+    "jumpChance": 0.22,
+    "retreatChance": 0.15
+  },
+  "veryHard": {
+    "label": "Muito difícil",
+    "reactionMs": 90,
+    "decisionMs": 85,
+    "mistakeChance": 0.025,
+    "attackChance": 0.94,
+    "blockChance": 0.58,
+    "specialChance": 0.62,
+    "preferredDistance": 190,
+    "jumpChance": 0.34,
+    "retreatChance": 0.18
+  }
+}

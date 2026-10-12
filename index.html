@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0a0d12">
+  <meta name="description" content="Bronx — Barber Fighter, jogo de luta arcade em HTML5.">
+  <title>Bronx — Barber Fighter</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <main>
+      <section id="menuScreen" class="screen menu-screen active">
+        <picture class="main-title-art" aria-hidden="true">
+          <source media="(orientation: portrait)" srcset="./assets/main-title/9x16.png">
+          <img src="./assets/main-title/16x9.png" alt="">
+        </picture>
+        <nav class="arcade-menu" aria-label="Modos de jogo">
+          <button class="arcade-choice" data-mode="story"><span class="choice-arrow">▶</span><span>HISTÓRIA</span></button>
+          <button class="arcade-choice" data-mode="cpu"><span class="choice-arrow">▶</span><span>ARCADE</span></button>
+          <button class="arcade-choice" data-mode="versus" disabled aria-label="Versus indisponível. Conecte dois controles."><span class="choice-arrow">▶</span><span>VERSUS</span><small>2 CONTROLES NECESSÁRIOS</small></button>
+          <button class="arcade-choice" data-mode="training"><span class="choice-arrow">▶</span><span>TREINO</span></button>
+          <button class="arcade-choice" data-mode="online"><span class="choice-arrow">▶</span><span>VERSUS WI-FI</span></button>
+          <button class="arcade-choice" id="menuOptionsButton"><span class="choice-arrow">⚙</span><span>OPÇÕES</span></button>
+        </nav>
+        <div class="menu-controls">SETAS PARA NAVEGAR <span>ENTER · CONFIRMAR</span></div>
+      </section>
+
+      <section id="onlineScreen" class="screen online-screen">
+        <div class="online-content">
+          <span class="eyebrow">ARCADE LOCAL · SEM INTERNET</span>
+          <h1>VERSUS WI-FI</h1>
+          <p>Este modo conecta dois aparelhos na mesma rede Wi‑Fi quando o servidor local está ativo.</p>
+          <div id="lanAddressList" class="lan-address-list" aria-live="polite">Carregando endereços da rede…</div>
+          <div class="online-actions">
+            <button id="lanHost" class="primary-button">CRIAR PARTIDA · P1</button>
+            <button id="lanJoin" class="outline-button">ENTRAR NA PARTIDA · P2</button>
+          </div>
+          <p id="lanStatus" class="lan-status" aria-live="polite">No aparelho anfitrião, escolha “Criar partida”.</p>
+          <button id="lanBack" class="text-button">← VOLTAR AO MENU</button>
+        </div>
+      </section>
+
+      <section id="selectScreen" class="screen select-screen">
+        <div class="select-topline">
+          <button class="text-button" data-screen="menuScreen">← MENU</button>
+          <span class="eyebrow" id="selectModeLabel">SELEÇÃO DE LUTADOR</span>
+          <span class="select-step">ARCADE</span>
+        </div>
+        <div class="select-layout" id="selectLayout">
+          <aside class="select-side select-side-p1" aria-label="Lutador selecionado do jogador 1">
+            <img id="p1SelectedArt" class="select-side-art" alt="" aria-hidden="true">
+          </aside>
+          <section class="roster-panel">
+            <div class="roster-heading">
+              <span class="eyebrow">ESCOLHA SEU LUTADOR</span>
+              <span class="roster-hint" id="p2SelectHint"></span>
+            </div>
+            <div id="roster" class="roster"></div>
+            <div class="selection-summary">
+              <button id="selectP1" type="button" class="select-player"><span>1P</span><strong id="p1Picked">Daniel</strong></button>
+              <div class="vs-small">VS</div>
+              <button id="selectP2" type="button" class="select-player"><span>2P</span><strong id="p2Picked">Diana</strong></button>
+            </div>
+            <div id="storyNotice" class="notice" hidden>Lorehy é o chefe final.</div>
+            <div id="versusSelectNotice" class="notice" hidden aria-live="polite"></div>
+            <div id="lanSelectStatus" class="notice" hidden></div>
+            <button id="startMatch" class="primary-button wide">COMEÇAR LUTA <span>→</span></button>
+            <button id="readyFighter" class="primary-button wide" hidden>CONFIRMAR MEU LUTADOR <span>✓</span></button>
+            <div class="select-help"><span id="p1Keys">P1: SETAS · ENTER</span><span id="p2Keys">P2: W / A / S / D</span></div>
+          </section>
+          <aside class="select-side select-side-p2" id="selectP2Panel" aria-label="Lutador selecionado do jogador 2" hidden>
+            <img id="p2SelectedArt" class="select-side-art" alt="" aria-hidden="true">
+          </aside>
+        </div>
+      </section>
+
+      <section id="optionsScreen" class="screen">
+        <div class="subnav"><button id="optionsBack" class="text-button">← VOLTAR</button><span class="eyebrow">AJUSTE A SUA SESSÃO</span></div>
+        <div class="section-heading"><div><span class="eyebrow">PREFERÊNCIAS</span><h2>Opções</h2></div></div>
+        <div class="options-grid">
+          <section class="settings-card"><h3>Combate</h3>
+            <label class="setting-row"><span>Dificuldade da CPU</span><select id="difficulty"><option value="normal">Normal</option><option value="hard">Difícil</option><option value="veryHard">Muito difícil</option></select></label>
+            <label class="setting-row"><span>Tempo por round</span><select id="roundTime"><option value="99">99 segundos</option><option value="60">60 segundos</option><option value="120">120 segundos</option></select></label>
+            <label class="setting-row"><span>Ajuda do Bônus (30% por round)</span><input id="assistEnabled" type="checkbox"></label>
+          </section>
+          <section class="settings-card"><h3>Áudio do jogo</h3>
+            <label class="setting-row"><span>Música da tela inicial e da luta</span><input id="musicEnabled" type="checkbox"></label>
+            <label class="setting-row"><span>Efeitos gerados via Web Audio</span><input id="sfxEnabled" type="checkbox"></label>
+            <label class="setting-row"><span>Volume da trilha</span><input id="musicVolume" type="range" min="0" max="100"></label>
+            <label class="setting-row"><span>Volume dos efeitos</span><input id="sfxVolume" type="range" min="0" max="100"></label>
+            <label class="setting-row"><span>Anúncios de round</span><input id="voiceEnabled" type="checkbox" checked></label>
+            <label class="setting-row"><span>Voz dos lutadores</span><input id="fighterVoiceEnabled" type="checkbox" checked></label>
+            <label class="setting-row"><span>Volume das vozes</span><input id="voiceVolume" type="range" min="0" max="100" value="72"></label>
+            <p class="setting-note">Anúncios de round e resultado usam as vozes do jogo. Os lutadores também reagem aos golpes.</p>
+          </section>
+          <section class="settings-card"><h3>Controles</h3>
+            <p class="setting-note">Conecte um controle USB ou Bluetooth e pressione qualquer botão. O primeiro controle é P1; o segundo é P2. No padrão Xbox/PlayStation: A/× soco, B/○ chute, X/□ defesa, Y/△ especial. Movimento pelo direcional ou analógico esquerdo. As ações podem ser remapeadas abaixo.</p>
+            <div id="bindings" class="bindings"></div>
+            <label class="setting-row"><span>Tamanho dos botões touch</span><input id="touchSize" type="range" min="80" max="130"></label>
+            <label class="setting-row"><span>Opacidade dos botões touch</span><input id="touchOpacity" type="range" min="90" max="100"></label>
+          </section>
+          <section class="settings-card"><h3>Treino</h3>
+            <label class="setting-row"><span>Vida infinita</span><input id="trainingInfiniteHealth" type="checkbox"></label>
+            <label class="setting-row"><span>Energia infinita</span><input id="trainingInfiniteEnergy" type="checkbox"></label>
+            <label class="setting-row"><span>Exibir hitboxes no treino</span><input id="trainingHitboxes" type="checkbox"></label>
+            <label class="setting-row"><span>Oponente de treino</span><select id="trainingDummy"><option value="passive">Passivo</option><option value="normal">CPU normal</option></select></label>
+          </section>
+        </div>
+        <div class="options-footer"><button id="saveOptions" class="primary-button">SALVAR OPÇÕES</button><span id="optionStatus" class="muted"></span></div>
+      </section>
+
+      <section id="gameScreen" class="screen game-screen">
+        <div class="game-toolbar"><button id="quitMatch" class="text-button">← SAIR DA LUTA</button><span id="gameModeLabel" class="eyebrow">ARCADE</span><span id="gamepadStatus" class="gamepad-status">Controles prontos</span></div>
+        <div class="arena-wrap">
+          <canvas id="gameCanvas" aria-label="Arena de luta"></canvas>
+          <div id="roundBanner" class="round-banner" hidden></div>
+          <button id="gamePauseButton" class="game-pause-button" type="button" aria-label="Pausar luta">Ⅱ</button>
+          <div id="pausePanel" class="arena-panel" hidden><span class="eyebrow">PAUSADO</span><h2>Respire.</h2><button id="resumeButton" class="primary-button">CONTINUAR</button><button id="pauseOptions" class="outline-button">OPÇÕES</button><button id="pauseQuit" class="outline-button">SAIR DA LUTA</button></div>
+          <div id="resultPanel" class="arena-panel result-panel" hidden>
+            <div class="game-over-art" aria-hidden="true"><picture><source media="(orientation: portrait)" srcset="./assets/game-over/9x16.png"><img src="./assets/game-over/16x9.png" alt=""></picture></div>
+            <div class="result-content"><span id="resultEyebrow" class="eyebrow">RESULTADO</span><h2 id="resultTitle">VITÓRIA</h2><p id="resultCopy"></p><button id="resultPrimary" class="primary-button"></button><button id="resultMenu" class="outline-button">VOLTAR AO MENU</button></div>
+          </div>
+          <div id="touchControls" class="touch-controls" hidden>
+            <div id="touchStick" class="touch-stick" role="application" aria-label="Analógico de movimento">
+              <div class="touch-stick-base" aria-hidden="true"><span id="touchStickKnob" class="touch-stick-knob"></span></div>
+              <span class="touch-stick-label" aria-hidden="true">MOVIMENTO</span>
+            </div>
+            <div class="touch-actions">
+              <button data-player="1" data-action="punch" class="punch-touch" aria-label="Soco">SOCO</button><button data-player="1" data-action="guard" class="guard-touch" aria-label="Defender">DEFESA</button><button data-player="1" data-action="kick" class="kick-touch" aria-label="Chute">CHUTE</button><button data-player="1" data-action="special" class="special-touch" aria-label="Golpe especial">ESPECIAL</button>
+            </div>
+          </div>
+        </div>
+        <div class="game-footer"><span id="gameHint">← → mover · ↑ pular · ↓ agachar · J soco · K chute · L defesa · I especial · P / Esc pausa</span><span>ROUNDS: MELHOR DE 3</span></div>
+      </section>
+
+      <section id="cinemaScreen" class="screen cinema-screen">
+        <div class="cinema-top"><span class="eyebrow">MODO HISTÓRIA · CONFRONTO FINAL</span><div><button id="toggleCinemaAudio" class="outline-button" type="button" aria-pressed="false">ATIVAR ÁUDIO</button><button id="skipCinema" class="outline-button">PULAR INTRO →</button></div></div>
+        <video id="bossCinema" playsinline preload="auto"></video>
+        <div id="cinemaFallback" class="cinema-fallback" hidden><h2 id="cinemaFallbackTitle">INTRODUÇÃO</h2><p id="cinemaFallbackCopy">Toque para reproduzir o vídeo.</p><button id="retryCinema" class="primary-button" type="button">INICIAR VÍDEO</button></div>
+      </section>
+    </main>
+  </div>
+  <div id="orientationBlocker" class="orientation-blocker" hidden role="dialog" aria-modal="true" aria-labelledby="orientationTitle">
+    <div class="orientation-card"><span class="orientation-icon" aria-hidden="true">⟳</span><p class="eyebrow">BRONX · BARBER FIGHTER</p><h1 id="orientationTitle">Vire o celular</h1><p>Este jogo foi feito para a tela horizontal. Gire o aparelho para continuar.</p></div>
+  </div>
+  <script type="module" src="./src/game.js"></script>
+</body>
+</html>

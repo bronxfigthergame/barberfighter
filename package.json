@@ -1,0 +1,10 @@
+{
+  "name": "bronx-barber-fighter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/dev-server.mjs",
+    "build": "node tools/build.mjs"
+  }
+}
