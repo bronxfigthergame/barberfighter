@@ -11,6 +11,7 @@ const FIGHTERS=[
 ];
 const BY_ID=Object.fromEntries(FIGHTERS.map(f=>[f.id,f]));
 const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+const viewportMeta=$("meta[name=\"viewport\"]"),defaultViewportContent=viewportMeta&&viewportMeta.content;
 const asset=p=>new URL("../"+p,import.meta.url).href;
 const MODE_NAMES={story:"MODO HISTÓRIA",cpu:"ARCADE VS CPU",versus:"VERSUS LOCAL",training:"TREINO",lan:"VERSUS WI-FI"};
 const ACTIONS={punch:"Soco",kick:"Chute",guard:"Defesa",special:"Especial"};
@@ -27,9 +28,10 @@ const gamepadUiHeld=[{confirm:false,start:false,cancel:false},{confirm:false,sta
 let orientationAutoPaused=false;
 const canvas=$("#gameCanvas"),ctx=canvas.getContext("2d"),stages={bronx:new Image(),boss:new Image()};let stage=stages.bronx;
 let viewport={w:960,h:540,dpr:1};
-function showScreen(id){screen=id;document.body.classList.toggle("playing",id==="gameScreen");$$(".screen").forEach(s=>s.classList.toggle("active",s.id===id));if(id==="gameScreen")resizeCanvas();if(id==="optionsScreen")fillOptions();updateVersusAvailability();updateOrientationBlocker();window.scrollTo(0,0);}
+function showScreen(id){screen=id;document.body.classList.toggle("playing",id==="gameScreen");if(viewportMeta&&defaultViewportContent)viewportMeta.content=id==="gameScreen"?defaultViewportContent+",user-scalable=no":defaultViewportContent;$$(".screen").forEach(s=>s.classList.toggle("active",s.id===id));if(id==="gameScreen")resizeCanvas();if(id==="optionsScreen")fillOptions();updateVersusAvailability();updateOrientationBlocker();window.scrollTo(0,0);}
 function isMobilePortrait(){return matchMedia("(pointer:coarse)").matches&&matchMedia("(orientation:portrait)").matches;}
 function updateOrientationBlocker(){const blocked=isMobilePortrait(),overlay=$("#orientationBlocker");if(overlay)overlay.hidden=!blocked;document.body.classList.toggle("orientation-blocked",blocked);if(blocked){cleanInput();if(match&&screen==="gameScreen"&&!match.paused){match.paused=true;orientationAutoPaused=true;$("#pausePanel").hidden=true;}}else if(orientationAutoPaused&&match){orientationAutoPaused=false;match.paused=false;$("#pausePanel").hidden=true;last=0;}}
+window.addEventListener("gesturestart",e=>{if(screen==="gameScreen")e.preventDefault();},{passive:false});
 function requestLandscapeLock(){try{const request=window.screen&&window.screen.orientation&&window.screen.orientation.lock("landscape");if(request&&request.catch)request.catch(()=>{});}catch(e){}}
 function enterArcadeSession(){
  document.body.classList.add("arcade-session");
@@ -39,7 +41,7 @@ function enterArcadeSession(){
  fullscreenPending=true;
  try{const request=root.requestFullscreen({navigationUI:"hide"});if(request&&request.then)request.then(()=>{fullscreenPending=false;requestLandscapeLock();},()=>{fullscreenPending=false;});else fullscreenPending=false;}catch(e){fullscreenPending=false;}
 }
-function clearVirtualStick(){virtualStick=null;const stick=$("#touchStick"),knob=$("#touchStickKnob");if(stick)stick.classList.remove("active");if(knob)knob.style.transform="translate3d(0,0,0)";}
+function clearVirtualStick(){virtualStick=null;const stick=$("#touchStick"),knob=$("#touchStickKnob");if(stick)stick.classList.remove("active");if(knob)knob.style.transform="translate3d(-50%,-50%,0)";}
 function cleanInput(){keys.clear();touches.clear();clearVirtualStick();}
 async function lanPost(path,payload={}){const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||"Falha na conexão local.");return data;}
 function setLanStatus(text){const node=$("#lanStatus");if(node)node.textContent=text;}
@@ -408,7 +410,7 @@ function startApp(){
  $("#skipCinema").onclick=skipCinema;
  $("#retryCinema").onclick=retryCinema;$("#toggleCinemaAudio").onclick=toggleCinemaAudio;
  const touchStick=$("#touchStick"),touchStickKnob=$("#touchStickKnob");
- const moveTouchStick=e=>{if(!virtualStick||virtualStick.pointerId!==e.pointerId)return;e.preventDefault();const rect=touchStick.getBoundingClientRect(),limit=Math.max(1,(rect.width-touchStickKnob.offsetWidth)/2),dx=e.clientX-(rect.left+rect.width/2),dy=e.clientY-(rect.top+rect.height/2),length=Math.hypot(dx,dy),scale=length>limit?limit/length:1;let x=dx*scale/limit,y=dy*scale/limit;if(Math.abs(x)<.12)x=0;if(Math.abs(y)<.12)y=0;virtualStick.x=x;virtualStick.y=y;touchStickKnob.style.transform=`translate3d(${dx*scale}px,${dy*scale}px,0)`;};
+ const moveTouchStick=e=>{if(!virtualStick||virtualStick.pointerId!==e.pointerId)return;e.preventDefault();const rect=touchStick.getBoundingClientRect(),limit=Math.max(1,(rect.width-touchStickKnob.offsetWidth)/2),dx=e.clientX-(rect.left+rect.width/2),dy=e.clientY-(rect.top+rect.height/2),length=Math.hypot(dx,dy),scale=length>limit?limit/length:1;let x=dx*scale/limit,y=dy*scale/limit;if(Math.abs(x)<.12)x=0;if(Math.abs(y)<.12)y=0;virtualStick.x=x;virtualStick.y=y;touchStickKnob.style.transform=`translate3d(-50%,-50%,0) translate3d(${dx*scale}px,${dy*scale}px,0)`;};
  touchStick.addEventListener("pointerdown",e=>{e.preventDefault();if(virtualStick)return;touchStick.setPointerCapture(e.pointerId);virtualStick={pointerId:e.pointerId,player:1,x:0,y:0};touchStick.classList.add("active");moveTouchStick(e);});
  touchStick.addEventListener("pointermove",moveTouchStick);
  const releaseTouchStick=e=>{if(!virtualStick||virtualStick.pointerId!==e.pointerId)return;clearVirtualStick();};

@@ -371,7 +371,7 @@ body.orientation-blocked .app-shell{filter:blur(5px);pointer-events:none;user-se
 .touch-stick{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));width:clamp(116px,31vh,154px);aspect-ratio:1;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 8px 16px rgba(0,0,0,.48))}
 .touch-stick-base{position:absolute;inset:0;border:1px solid rgba(231,238,246,.26);border-radius:50%;background:radial-gradient(circle at 35% 28%,rgba(55,72,90,.76),rgba(10,17,26,.84) 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 0 7px rgba(9,15,23,.34),0 0 0 1px rgba(0,0,0,.38);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
 .touch-stick-base:before{content:"";position:absolute;inset:17%;border:1px solid rgba(226,235,245,.12);border-radius:50%;background:linear-gradient(90deg,transparent 49.6%,rgba(231,238,246,.1) 49.8%,rgba(231,238,246,.1) 50.2%,transparent 50.4%),linear-gradient(0deg,transparent 49.6%,rgba(231,238,246,.1) 49.8%,rgba(231,238,246,.1) 50.2%,transparent 50.4%)}
-.touch-stick-knob{position:absolute;z-index:2;left:50%;top:50%;width:42%;aspect-ratio:1;transform:translate3d(0,0,0);border:1px solid rgba(255,255,255,.46);border-radius:50%;background:radial-gradient(circle at 34% 27%,rgba(137,159,179,.96),rgba(45,60,75,.97) 58%,rgba(18,27,38,.98));box-shadow:inset 0 2px 2px rgba(255,255,255,.2),0 5px 13px rgba(0,0,0,.45);transition:box-shadow .12s ease}
+.touch-stick-knob{position:absolute;z-index:2;left:50%;top:50%;width:42%;aspect-ratio:1;transform:translate3d(-50%,-50%,0);border:1px solid rgba(255,255,255,.46);border-radius:50%;background:radial-gradient(circle at 34% 27%,rgba(137,159,179,.96),rgba(45,60,75,.97) 58%,rgba(18,27,38,.98));box-shadow:inset 0 2px 2px rgba(255,255,255,.2),0 5px 13px rgba(0,0,0,.45);transition:box-shadow .12s ease}
 .touch-stick.active .touch-stick-knob{border-color:rgba(255,218,145,.8);box-shadow:inset 0 2px 2px rgba(255,255,255,.22),0 0 18px rgba(231,173,68,.32),0 5px 13px rgba(0,0,0,.45)}
 .touch-stick-label{position:absolute;left:0;right:0;bottom:10%;z-index:3;text-align:center;color:rgba(240,237,229,.58);font:800 7px/1 system-ui,sans-serif;letter-spacing:.17em;pointer-events:none}
 .touch-actions{--touch-action-size:clamp(52px,var(--touch-size,58px),74px);position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,var(--touch-action-size));grid-template-rows:repeat(3,var(--touch-action-size));gap:clamp(4px,1.2vh,8px);transform:none;filter:drop-shadow(0 8px 16px rgba(0,0,0,.46));pointer-events:auto}
@@ -393,6 +393,10 @@ body.orientation-blocked .app-shell{filter:blur(5px);pointer-events:none;user-se
 .select-actions{position:relative;z-index:5;display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:10px;min-height:66px;padding:8px 12px max(8px,env(safe-area-inset-bottom));border-top:1px solid rgba(231,173,68,.22);background:linear-gradient(180deg,rgba(7,10,15,.9),rgba(7,10,15,.99));box-shadow:0 -8px 24px rgba(0,0,0,.24)}
 .select-actions .primary-button.wide{width:min(320px,100%);min-height:48px;margin:0;padding:13px 18px}
 .select-actions [hidden]{display:none!important}
+
+/* During a fight, treat touch gestures as game input instead of browser zoom. */
+body.playing,body.playing *{touch-action:none!important;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.playing #touchControls{touch-action:none}
 @media(max-width:720px){
  .select-screen.active{padding:0 8px 0}
  .select-topline{flex-basis:44px;min-height:44px}
