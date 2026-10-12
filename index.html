@@ -5,7 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0a0d12">
   <meta name="description" content="Bronx — Barber Fighter, jogo de luta arcade em HTML5.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bronx Fighter">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Bronx — Barber Fighter</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
@@ -118,6 +127,7 @@
         <div class="arena-wrap">
           <canvas id="gameCanvas" aria-label="Arena de luta"></canvas>
           <div id="roundBanner" class="round-banner" hidden></div>
+          <button id="fullscreenButton" class="game-fullscreen-button" type="button" aria-label="Entrar em tela cheia" title="Tela cheia" hidden>⛶</button>
           <button id="gamePauseButton" class="game-pause-button" type="button" aria-label="Pausar luta">Ⅱ</button>
           <div id="pausePanel" class="arena-panel" hidden><span class="eyebrow">PAUSADO</span><h2>Respire.</h2><button id="resumeButton" class="primary-button">CONTINUAR</button><button id="pauseOptions" class="outline-button">OPÇÕES</button><button id="pauseQuit" class="outline-button">SAIR DA LUTA</button></div>
           <div id="resultPanel" class="arena-panel result-panel" hidden>

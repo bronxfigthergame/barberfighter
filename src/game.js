@@ -28,18 +28,27 @@ const gamepadUiHeld=[{confirm:false,start:false,cancel:false},{confirm:false,sta
 let orientationAutoPaused=false;
 const canvas=$("#gameCanvas"),ctx=canvas.getContext("2d"),stages={bronx:new Image(),boss:new Image()};let stage=stages.bronx;
 let viewport={w:960,h:540,dpr:1};
-function showScreen(id){screen=id;document.body.classList.toggle("playing",id==="gameScreen");if(viewportMeta&&defaultViewportContent)viewportMeta.content=id==="gameScreen"?defaultViewportContent+",user-scalable=no":defaultViewportContent;$$(".screen").forEach(s=>s.classList.toggle("active",s.id===id));if(id==="gameScreen")resizeCanvas();if(id==="optionsScreen")fillOptions();updateVersusAvailability();updateOrientationBlocker();window.scrollTo(0,0);}
+function showScreen(id){screen=id;document.body.classList.toggle("playing",id==="gameScreen");if(viewportMeta&&defaultViewportContent)viewportMeta.content=id==="gameScreen"?defaultViewportContent+",user-scalable=no":defaultViewportContent;$$(".screen").forEach(s=>s.classList.toggle("active",s.id===id));if(id==="gameScreen")resizeCanvas();if(id==="optionsScreen")fillOptions();updateVersusAvailability();updateOrientationBlocker();updateFullscreenButton();window.scrollTo(0,0);}
 function isMobilePortrait(){return matchMedia("(pointer:coarse)").matches&&matchMedia("(orientation:portrait)").matches;}
 function updateOrientationBlocker(){const blocked=isMobilePortrait(),overlay=$("#orientationBlocker");if(overlay)overlay.hidden=!blocked;document.body.classList.toggle("orientation-blocked",blocked);if(blocked){cleanInput();if(match&&screen==="gameScreen"&&!match.paused){match.paused=true;orientationAutoPaused=true;$("#pausePanel").hidden=true;}}else if(orientationAutoPaused&&match){orientationAutoPaused=false;match.paused=false;$("#pausePanel").hidden=true;last=0;}}
+let lastTouchControlTap=0;
+document.addEventListener("touchend",e=>{if(screen!=="gameScreen")return;const target=e.target instanceof Element?e.target.closest("#touchControls .touch-actions button, #touchStick"):null;if(!target)return;const now=performance.now();if(now-lastTouchControlTap<450)e.preventDefault();lastTouchControlTap=now;},{passive:false});
+document.addEventListener("dblclick",e=>{if(screen==="gameScreen"&&e.target instanceof Element&&e.target.closest("#touchControls"))e.preventDefault();},{passive:false});
 window.addEventListener("gesturestart",e=>{if(screen==="gameScreen")e.preventDefault();},{passive:false});
 function requestLandscapeLock(){try{const request=window.screen&&window.screen.orientation&&window.screen.orientation.lock("landscape");if(request&&request.catch)request.catch(()=>{});}catch(e){}}
 function enterArcadeSession(){
  document.body.classList.add("arcade-session");
+ requestLandscapeLock();
+}
+function isInstalledApp(){return matchMedia("(display-mode:standalone)").matches||matchMedia("(display-mode:fullscreen)").matches||navigator.standalone===true;}
+function updateFullscreenButton(){const button=$("#fullscreenButton");if(!button)return;button.hidden=screen!=="gameScreen"||!document.documentElement.requestFullscreen||Boolean(document.fullscreenElement)||isInstalledApp();}
+document.addEventListener("fullscreenchange",updateFullscreenButton);
+function requestGameFullscreen(){
  const root=document.documentElement;
  requestLandscapeLock();
- if(document.fullscreenElement||fullscreenPending||!root.requestFullscreen)return;
+ if(document.fullscreenElement||fullscreenPending||isInstalledApp()||!root.requestFullscreen){updateFullscreenButton();return;}
  fullscreenPending=true;
- try{const request=root.requestFullscreen({navigationUI:"hide"});if(request&&request.then)request.then(()=>{fullscreenPending=false;requestLandscapeLock();},()=>{fullscreenPending=false;});else fullscreenPending=false;}catch(e){fullscreenPending=false;}
+ try{const request=root.requestFullscreen({navigationUI:"hide"});if(request&&request.then)request.then(()=>{fullscreenPending=false;requestLandscapeLock();updateFullscreenButton();},()=>{fullscreenPending=false;updateFullscreenButton();});else{fullscreenPending=false;updateFullscreenButton();}}catch(e){fullscreenPending=false;updateFullscreenButton();}
 }
 function clearVirtualStick(){virtualStick=null;const stick=$("#touchStick"),knob=$("#touchStickKnob");if(stick)stick.classList.remove("active");if(knob)knob.style.transform="translate3d(-50%,-50%,0)";}
 function cleanInput(){keys.clear();touches.clear();clearVirtualStick();}
@@ -144,7 +153,16 @@ function speakFighter(f,kind){
 }
 function announceRound(round){playVoiceClip("rounds/"+(round===1?"ROUND_ONE":round===2?"ROUND_TWO":"FINAL_ROUND"));}
 
-async function startSelection(){if(isMobilePortrait())return;if(mode==="versus"&&!updateVersusAvailability()){const notice=$("#versusSelectNotice");notice.hidden=false;notice.textContent="Conecte e pressione um botão em dois controles para jogar Versus.";return;}enterArcadeSession();if(mode==="lan"&&lanRole!=="host")return;if(mode==="lan"&&!lanPeerConnected){const status=$("#lanSelectStatus");status.hidden=false;status.textContent="Aguardando o jogador 2 entrar pelo endereço local.";return;}if(mode==="lan"&&!lanGuestReady){const status=$("#lanSelectStatus");status.hidden=false;status.textContent="Aguardando o jogador 2 escolher e confirmar o personagem.";return;}if(mode==="story"){primeBossCinemaFromGesture();campaign=storyOpponents(FIGHTERS.filter(f=>!f.boss).map(f=>f.id),selected.p1,"lorehy");campaignIndex=0;beginStoryStep();return;}let opponent=selected.p2;if(mode!=="versus"&&opponent===selected.p1){opponent=FIGHTERS.find(f=>f.id!==selected.p1).id;selected.p2=opponent;}beginMatch(opponent);}
+async function startSelection(){
+ if(isMobilePortrait())return;
+ if(mode==="versus"&&!updateVersusAvailability()){const notice=$("#versusSelectNotice");notice.hidden=false;notice.textContent="Conecte e pressione um botão em dois controles para jogar Versus.";return;}
+ if(mode==="lan"&&lanRole!=="host")return;
+ if(mode==="lan"&&!lanPeerConnected){const status=$("#lanSelectStatus");status.hidden=false;status.textContent="Aguardando o jogador 2 entrar pelo endereço local.";return;}
+ if(mode==="lan"&&!lanGuestReady){const status=$("#lanSelectStatus");status.hidden=false;status.textContent="Aguardando o jogador 2 escolher e confirmar o personagem.";return;}
+ enterArcadeSession();requestGameFullscreen();
+ if(mode==="story"){primeBossCinemaFromGesture();campaign=storyOpponents(FIGHTERS.filter(f=>!f.boss).map(f=>f.id),selected.p1,"lorehy");campaignIndex=0;beginStoryStep();return;}
+ let opponent=selected.p2;if(mode!=="versus"&&opponent===selected.p1){opponent=FIGHTERS.find(f=>f.id!==selected.p1).id;selected.p2=opponent;}beginMatch(opponent);
+}
 function confirmLanFighter(){if(mode!=="lan"||lanRole!=="guest"||!lanId)return;lanGuestReady=true;updateSelection();sendLanSelection();}
 function beginStoryStep(){if(mode==="story"&&campaign[campaignIndex]==="lorehy")playBossCinema();else beginMatch(campaign[campaignIndex]);}
 function showCinemaStartPrompt(run=cinemaRun){if(run!==cinemaRun||screen!=="cinemaScreen")return;const fallback=$("#cinemaFallback");$("#cinemaFallbackTitle").textContent="INICIAR INTRODUÇÃO";$("#cinemaFallbackCopy").textContent="O navegador bloqueou o início automático com som. Toque para reproduzir a introdução com áudio.";$("#retryCinema").textContent="REPRODUZIR COM ÁUDIO";$("#retryCinema").hidden=false;fallback.hidden=false;$("#retryCinema").focus({preventScroll:true});}
@@ -396,7 +414,7 @@ function startApp(){
  $("#menuOptionsButton").onclick=()=>{previousScreen="menuScreen";showScreen("optionsScreen");};
  $("#lanHost").onclick=createLanMatch;$("#lanJoin").onclick=joinLanMatch;$("#lanBack").onclick=()=>{if(lanRole)disconnectLan();match=null;mode="cpu";showScreen("menuScreen");};
  $$("[data-screen]").forEach(b=>b.addEventListener("click",()=>{if(lanRole){disconnectLan();mode="cpu";}showScreen(b.dataset.screen);}));
- $("#startMatch").onclick=startSelection;
+  $("#startMatch").onclick=startSelection;$("#fullscreenButton").onclick=requestGameFullscreen;
  $("#readyFighter").onclick=confirmLanFighter;
  $("#selectP1").onclick=()=>{activeSide=1;updateSelection();};
  $("#selectP2").onclick=()=>{if(mode==="versus"||mode==="lan"){activeSide=2;updateSelection();}};

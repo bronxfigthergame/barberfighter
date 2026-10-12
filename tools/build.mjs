@@ -8,7 +8,7 @@ const outputDir = path.join(projectRoot, "dist");
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
 
-for (const entry of ["index.html", ".nojekyll", "assets", "music", "src"]) {
+for (const entry of ["index.html", "manifest.webmanifest", ".nojekyll", "assets", "music", "src"]) {
   await cp(path.join(projectRoot, entry), path.join(outputDir, entry), { recursive: true });
 }
 

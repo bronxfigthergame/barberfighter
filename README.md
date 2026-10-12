@@ -43,6 +43,15 @@ No GitHub Pages, funcionam História, Arcade, Versus local e Treino. O modo **Ve
 - As ações podem ser remapeadas em **Opções → Controles**. O navegador precisa de HTTPS ou localhost para disponibilizar a API de controles; o GitHub Pages usa HTTPS.
 - **Partida:** Start no controle, P ou Esc pausa/retoma a luta. Em celular, o jogo exige orientação horizontal e mostra uma tela de bloqueio se o aparelho estiver na vertical. Use os novos controles de toque na tela.
 
+## Instalar no celular
+
+O ícone fornecido está configurado para a tela inicial. Depois de publicar o jogo no GitHub Pages:
+
+- **Android:** abra o endereço no Chrome, toque no menu ⋮ e escolha **Instalar app** ou **Adicionar à tela inicial**.
+- **iPhone:** abra o endereço no Safari, toque em **Compartilhar → Adicionar à Tela de Início** e abra o jogo pelo ícone criado.
+
+Ao iniciar uma luta, o jogo solicita tela cheia nos navegadores que permitem esse recurso. No iPhone, abrir pelo ícone da tela inicial esconde a barra do Safari; uma página aberta no navegador não pode forçar tela cheia em todos os aparelhos.
+
 ## Personagens e atlas
 
 Os arquivos de origem do Christian estão em `personagens/Christian/`. O jogo carrega o atlas e os retratos derivados em `assets/fighters/christian/`.
