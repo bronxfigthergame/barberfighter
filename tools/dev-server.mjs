@@ -10,7 +10,7 @@ const configuredPort = Number(process.env.PORT) || 4173;
 let port = configuredPort;
 let usingFallbackPort = false;
 const mime = { ".html":"text/html; charset=utf-8", ".css":"text/css; charset=utf-8", ".js":"text/javascript; charset=utf-8", ".json":"application/json; charset=utf-8", ".png":"image/png", ".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".webp":"image/webp", ".mp3":"audio/mpeg", ".mp4":"video/mp4" };
-const room = { hostId:null, guestId:null, host:null, guest:null };
+const room = { hostId:null, guestId:null, host:null, guest:null, code:null };
 
 function send(peer, type, data = {}) {
   if (!peer || peer.destroyed || peer.writableEnded) return;
@@ -31,7 +31,7 @@ function clearRoom() {
   send(room.guest, "hostLeft", {});
   if (room.guest && !room.guest.destroyed) room.guest.end();
   if (room.host && !room.host.destroyed) room.host.end();
-  room.host = null; room.guest = null; room.hostId = null; room.guestId = null;
+  room.host = null; room.guest = null; room.hostId = null; room.guestId = null; room.code = null;
 }
 function lanAddresses() {
   const result = [];
@@ -62,10 +62,12 @@ const server = http.createServer(async (req, res) => {
       try { await readJson(req); } catch (error) { json(res, 400, { error:error.message }); return; }
       if (room.hostId) { json(res, 409, { error:"Já existe uma partida hospedada neste servidor." }); return; }
       room.hostId = randomBytes(12).toString("hex");
-      json(res, 200, { id:room.hostId, addresses:lanAddresses() }); return;
+      room.code=randomBytes(4).toString("hex").toUpperCase();
+      json(res, 200, { id:room.hostId, code:room.code, addresses:lanAddresses() }); return;
     }
     if (pathname === "/lan/join" && req.method === "POST") {
-      try { await readJson(req); } catch (error) { json(res, 400, { error:error.message }); return; }
+      let joinData;try { joinData=await readJson(req); } catch (error) { json(res, 400, { error:error.message }); return; }
+      if (!room.code||String(joinData.code||"").toUpperCase()!==room.code){json(res,403,{error:"Código da sala incorreto."});return;}
       if (!room.hostId) { json(res, 409, { error:"O anfitrião ainda não criou a partida." }); return; }
       if (room.guestId) { json(res, 409, { error:"Esta partida já tem um jogador 2 conectado." }); return; }
       room.guestId = randomBytes(12).toString("hex");
@@ -87,7 +89,7 @@ const server = http.createServer(async (req, res) => {
       res.on("close", () => {
         clearInterval(heartbeat);
         if (role === "guest" && room.guest === res) { room.guest = null; room.guestId = null; send(room.host, "peer", { connected:false }); }
-        if (role === "host" && room.host === res) { room.host = null; send(room.guest, "hostLeft", {}); if (room.guest && !room.guest.destroyed) room.guest.end(); room.guest = null; room.hostId = null; room.guestId = null; }
+        if (role === "host" && room.host === res) { room.host = null; send(room.guest, "hostLeft", {}); if (room.guest && !room.guest.destroyed) room.guest.end(); room.guest = null; room.hostId = null; room.guestId = null; room.code = null; }
       });
       return;
     }

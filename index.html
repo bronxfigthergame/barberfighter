@@ -28,9 +28,9 @@
         <nav class="arcade-menu" aria-label="Modos de jogo">
           <button class="arcade-choice" data-mode="story"><span class="choice-arrow">▶</span><span>HISTÓRIA</span></button>
           <button class="arcade-choice" data-mode="cpu"><span class="choice-arrow">▶</span><span>ARCADE</span></button>
-          <button class="arcade-choice" data-mode="versus" disabled aria-label="Versus indisponível. Conecte dois controles."><span class="choice-arrow">▶</span><span>VERSUS</span><small>2 CONTROLES NECESSÁRIOS</small></button>
           <button class="arcade-choice" data-mode="training"><span class="choice-arrow">▶</span><span>TREINO</span></button>
           <button class="arcade-choice" data-mode="online"><span class="choice-arrow">▶</span><span>VERSUS WI-FI</span></button>
+          <a class="bronx-booking" target="_blank" rel="noopener noreferrer" href="https://api.whatsapp.com/message/RH3XMNS4I7AZJ1?autoload=1&amp;app_absent=0&amp;utm_source=ig">AGENDAR NA BARBEARIA</a>
           <button class="arcade-choice" id="menuOptionsButton"><span class="choice-arrow">⚙</span><span>OPÇÕES</span></button>
         </nav>
         <div class="menu-controls">SETAS PARA NAVEGAR <span>ENTER · CONFIRMAR</span></div>
@@ -41,11 +41,14 @@
           <span class="eyebrow">ARCADE LOCAL · SEM INTERNET</span>
           <h1>VERSUS WI-FI</h1>
           <p>Este modo conecta dois aparelhos na mesma rede Wi‑Fi quando o servidor local está ativo.</p>
+          <div id="ownRoomPanel" class="own-room-panel" hidden><strong>CÓDIGO DA SUA SALA</strong><output id="ownRoomCode" aria-live="polite"></output><button id="copyOwnRoom" class="outline-button" type="button">COPIAR MEU CÓDIGO</button><a id="shareOwnRoom" class="outline-button" target="_blank" rel="noopener noreferrer">ENVIAR NO WHATSAPP</a><small>Envie este código ao jogador 2 conectado na mesma rede.</small></div>
+          <label for="joinRoomCode">CÓDIGO RECEBIDO DO OUTRO JOGADOR</label><input id="joinRoomCode" maxlength="8" autocomplete="off" placeholder="Digite os 8 caracteres" autocapitalize="characters" style="text-transform:uppercase;width:min(330px,100%);padding:12px;margin:8px auto">
           <div id="lanAddressList" class="lan-address-list" aria-live="polite">Carregando endereços da rede…</div>
           <div class="online-actions">
             <button id="lanHost" class="primary-button">CRIAR PARTIDA · P1</button>
             <button id="lanJoin" class="outline-button">ENTRAR NA PARTIDA · P2</button>
           </div>
+          <button id="lanChooseFighters" class="primary-button" hidden>ESCOLHER LUTADORES →</button>
           <p id="lanStatus" class="lan-status" aria-live="polite">No aparelho anfitrião, escolha “Criar partida”.</p>
           <button id="lanBack" class="text-button">← VOLTAR AO MENU</button>
         </div>
@@ -72,6 +75,7 @@
               <div class="vs-small">VS</div>
               <button id="selectP2" type="button" class="select-player"><span>2P</span><strong id="p2Picked">Diana</strong></button>
             </div>
+            <label id="arcadeHumanRow" class="notice" hidden><input type="checkbox" id="arcadeHuman2"> JOGAR CONTRA OUTRA PESSOA (2 CONTROLES)</label>
             <div id="storyNotice" class="notice" hidden>Lorehy é o chefe final.</div>
             <div id="versusSelectNotice" class="notice" hidden aria-live="polite"></div>
             <div id="lanSelectStatus" class="notice" hidden></div>
@@ -132,7 +136,7 @@
           <div id="pausePanel" class="arena-panel" hidden><span class="eyebrow">PAUSADO</span><h2>Respire.</h2><button id="resumeButton" class="primary-button">CONTINUAR</button><button id="pauseOptions" class="outline-button">OPÇÕES</button><button id="pauseQuit" class="outline-button">SAIR DA LUTA</button></div>
           <div id="resultPanel" class="arena-panel result-panel" hidden>
             <div class="game-over-art" aria-hidden="true"><picture><source media="(orientation: portrait)" srcset="./assets/game-over/9x16.png"><img src="./assets/game-over/16x9.png" alt=""></picture></div>
-            <div class="result-content"><span id="resultEyebrow" class="eyebrow">RESULTADO</span><h2 id="resultTitle">VITÓRIA</h2><p id="resultCopy"></p><button id="resultPrimary" class="primary-button"></button><button id="resultMenu" class="outline-button">VOLTAR AO MENU</button></div>
+            <div class="result-content"><span id="resultEyebrow" class="eyebrow">RESULTADO</span><h2 id="resultTitle">VITÓRIA</h2><p id="resultCopy"></p><button id="resultPrimary" class="primary-button"></button><button id="resultMenu" class="outline-button">VOLTAR AO MENU</button><a id="resultBooking" class="bronx-booking" target="_blank" rel="noopener noreferrer" hidden href="https://api.whatsapp.com/message/RH3XMNS4I7AZJ1?autoload=1&amp;app_absent=0&amp;utm_source=ig">AGENDAR NA BARBEARIA</a></div>
           </div>
           <div id="touchControls" class="touch-controls" hidden>
             <div id="touchStick" class="touch-stick" role="application" aria-label="Analógico de movimento">
