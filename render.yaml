@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: bronx-fighter-salas
+    runtime: python
+    plan: free
+    buildCommand: 'python3 -m compileall -q render-server'
+    startCommand: 'python3 -u render-server/server.py'
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: '1'
+      - key: BRONX_ALLOWED_ORIGINS
+        value: 'https://bronxfigthergame.github.io'
+      - key: BRONX_GAME_URL
+        value: 'https://bronxfigthergame.github.io/barberfighter/'

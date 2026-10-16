@@ -1,5 +1,12 @@
 import {boxesOverlap,blocksHit,isMoveActive,damageHealth,timerWinner,seriesWinner,storyOpponents} from "./combat-core.js";
+import {approach,freshCombatState,captureInput,peekBuffered,takeBuffered,chooseAttack,adjustedDamage,canCancel,impactPoseIndex,attackPoseIndex,bodyHurtBox,strikeHitBox,MAX_CHAIN} from "./combat-v4.js";
+document.title=(document.title||"Bronx Fighter")+" | ONLINE V8 · GITHUB + RENDER";
+console.info("[Bronx Fighter] COMBATE V6: SUA sala em destaque, seleção manual do oponente no Arcade.");
 
+import {createLanInviteUi,chooseLanInviteUrl,normalizeRoomCode,getJoinCodeFromUrl} from "./lan-v5.js";
+import {createOwnRoomPanel} from "./room-v6.js";
+import {selectArcadeFighter,resolveArcadeMatchMode} from "./arcade-v6.js";
+import {lanEndpoint,chooseOnlineInviteUrl,onlineApiConfigured} from "./online-v8.js";
 const FIGHTERS=[
 {id:"daniel",name:"Daniel",title:"O tecelão do Bronx",bio:"Rápido no jab e preciso no alcance. Prende o rival com uma teia de aço.",color:"#54bbf2",special:"Teia de Aço"},
 {id:"diana",name:"Diana",title:"A tempestade",bio:"Movimento leve, ataques baixos e spray explosivo.",color:"#ec4cba",special:"Spray Explosivo"},
@@ -13,7 +20,7 @@ const BY_ID=Object.fromEntries(FIGHTERS.map(f=>[f.id,f]));
 const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
 const viewportMeta=$("meta[name=\"viewport\"]"),defaultViewportContent=viewportMeta&&viewportMeta.content;
 const asset=p=>new URL("../"+p,import.meta.url).href;
-const MODE_NAMES={story:"MODO HISTÓRIA",cpu:"ARCADE",versus:"ARCADE",training:"TREINO",lan:"VERSUS WI-FI"};
+const MODE_NAMES={story:"MODO HISTÓRIA",cpu:"ARCADE",versus:"ARCADE",training:"TREINO",lan:"VERSUS ONLINE"};
 const ACTIONS={punch:"Soco",kick:"Chute",guard:"Defesa",special:"Especial"};
 const DEFAULTS={difficulty:"normal",roundSeconds:99,assistEnabled:true,musicEnabled:true,sfxEnabled:true,voiceEnabled:true,fighterVoiceEnabled:true,musicVolume:38,sfxVolume:45,voiceVolume:72,touchSize:100,touchOpacity:92,trainingInfiniteHealth:false,trainingInfiniteEnergy:false,trainingHitboxes:false,trainingDummy:"passive",keyMap:{p1:{punch:"KeyJ",kick:"KeyK",guard:"KeyL",special:"KeyI"},p2:{punch:"KeyF",kick:"KeyG",guard:"KeyH",special:"KeyT"}},padMap:{p1:{punch:0,kick:1,guard:2,special:3},p2:{punch:0,kick:1,guard:2,special:3}}};
 const FIGHTER_VOICES={daniel:{pitch:.94,rate:1.04,attack:["Toma!","Vai!"],special:"Teia de aço!",hit:"Ah!",block:"Boa defesa!",win:"Essa luta é minha!"},diana:{pitch:1.14,rate:1.08,attack:["Sai!","Toma essa!"],special:"Spray explosivo!",hit:"Ai!",block:"Não passou!",win:"Acabou pra você!"},kadu:{pitch:1.02,rate:1.13,attack:["Vai encarar?","Toma!"],special:"Moto do Bronx!",hit:"Ugh!",block:"Nem sentiu!",win:"Fui mais rápido!"},bruno:{pitch:.82,rate:.92,attack:["Vem pra cima!","Sai da frente!"],special:"Barril do Bronx!",hit:"Ugh!",block:"Nem mexeu!",win:"Essa rua é minha!"},christian:{pitch:1.08,rate:1.03,attack:["Olha o falcão!","Agora!"],special:"Ataque do falcão!",hit:"Ah!",block:"Defendi!",win:"Voo mais alto!"},luana:{pitch:1.16,rate:1.04,attack:["Quentinho!","Toma café!"],special:"Café em chamas!",hit:"Ai!",block:"Passou longe!",win:"Pode fechar a conta!"},lorehy:{pitch:.78,rate:.9,attack:["Respeita!","A casa é minha!"],special:"Chuva de tesouras!",hit:"Isso não acabou!",block:"Patético!",win:"O Bronx é meu!"}};
@@ -22,7 +29,7 @@ let settings=getSettings(),moves=null,aiProfiles=null,assets={},bonusAssets=null
 let virtualStick=null;
 const NEUTRAL_INPUT={direction:0,up:false,down:false,punch:false,kick:false,guard:false,special:false};
 let lanRole=null,lanId=null,lanEvents=null,lanPeerConnected=false,lanGuestReady=false,lanRemoteInput=Object.assign({},NEUTRAL_INPUT),lanSnapshotTimer=0,lanInputTimer=0,lanSelectionQueue=Promise.resolve();
-let lanServerAvailable=false,gamepadNavCooldown=0,gamepadPauseIndex=0,ownRoomCode="",arcadeHuman2=false;
+let lanServerAvailable=false,gamepadNavCooldown=0,gamepadPauseIndex=0,lanRoomCode=null,lanInviteUi=null,ownRoomUi=null,arcadeTwoPlayers=false;
 const gamepadSelectCooldown=[0,0];
 const gamepadUiHeld=[{confirm:false,start:false,cancel:false},{confirm:false,start:false,cancel:false}];
 let orientationAutoPaused=false;
@@ -52,18 +59,51 @@ function requestGameFullscreen(){
 }
 function clearVirtualStick(){virtualStick=null;const stick=$("#touchStick"),knob=$("#touchStickKnob");if(stick)stick.classList.remove("active");if(knob)knob.style.transform="translate3d(-50%,-50%,0)";}
 function cleanInput(){keys.clear();touches.clear();clearVirtualStick();}
-async function lanPost(path,payload={}){const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||"Falha na conexão local.");return data;}
+async function lanPost(path,payload={}){const response=await fetch(lanEndpoint(path),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||"Falha na conexão local.");return data;}
 function setLanStatus(text){const node=$("#lanStatus");if(node)node.textContent=text;}
 function showLanAddresses(addresses){const holder=$("#lanAddressList");if(!holder)return;holder.innerHTML="";const list=addresses&&addresses.length?addresses:[{url:location.origin,address:location.host}];list.forEach(item=>{const line=document.createElement("div"),link=document.createElement("a");link.href=item.url;link.textContent=item.url;line.append(link);holder.append(line);});}
-async function openLanLobby(){mode="lan";lanServerAvailable=false;$("#ownRoomPanel").hidden=true;$("#lanHost").hidden=false;$("#lanJoin").hidden=false;$("#lanHost").disabled=true;$("#lanJoin").disabled=true;showScreen("onlineScreen");setLanStatus("Verificando se o servidor de partidas locais está ativo…");try{const response=await fetch("/lan/info");if(!response.ok)throw new Error("Servidor local indisponível");const info=await response.json();if(!Array.isArray(info.addresses))throw new Error("Resposta inválida do servidor");lanServerAvailable=true;$("#lanHost").disabled=false;$("#lanJoin").disabled=false;showLanAddresses(info.addresses);setLanStatus("No aparelho anfitrião, escolha “Criar partida”.");}catch(e){showLanAddresses([{url:location.origin}]);setLanStatus("Esta versão hospedada permite jogar História, Arcade, Versus local e Treino. Para duas pessoas por Wi‑Fi, execute npm run dev em um computador e conecte os aparelhos à mesma rede.");}}
-function connectLan(role,id){lanRole=role;lanId=id;lanPeerConnected=role==="guest";lanGuestReady=false;lanRemoteInput=Object.assign({},NEUTRAL_INPUT);if(lanEvents)lanEvents.close();lanEvents=new EventSource("/lan/events?role="+encodeURIComponent(role)+"&id="+encodeURIComponent(id));lanEvents.onmessage=event=>{let message;try{message=JSON.parse(event.data);}catch(e){return;}handleLanMessage(message);};lanEvents.onerror=()=>{if(lanRole===role)setLanStatus("Conexão local interrompida. Confira a rede Wi‑Fi e o servidor.");};if(lanInputTimer)clearInterval(lanInputTimer);if(role==="guest")lanInputTimer=setInterval(()=>{if(lanRole!=="guest"||!lanId||screen!=="gameScreen")return;lanPost("/lan/input",{id:lanId,input:humanInput(1)}).catch(()=>{});},50);}
-async function createLanMatch(){try{setLanStatus("Criando a partida local…");const result=await lanPost("/lan/host");ownRoomCode=result.code;const panel=$("#ownRoomPanel");panel.hidden=false;$("#ownRoomCode").textContent=ownRoomCode;$("#shareOwnRoom").href="https://wa.me/?text="+encodeURIComponent("Minha sala do Bronx Fighter: "+ownRoomCode+". Entre pelo mesmo endereço do meu Wi-Fi.");showLanAddresses(result.addresses);connectLan("host",result.id);lanPeerConnected=false;mode="lan";activeSide=1;$("#lanChooseFighters").hidden=false;setLanStatus("ESTE É O CÓDIGO DA SUA SALA: "+ownRoomCode);}catch(e){setLanStatus(e.message);}}
-async function joinLanMatch(){try{setLanStatus("Procurando o anfitrião nesta rede…");const code=$("#joinRoomCode").value.trim().toUpperCase();if(!/^[0-9A-F]{8}$/.test(code))throw Error("Digite o código de 8 caracteres recebido do anfitrião.");const result=await lanPost("/lan/join",{code});connectLan("guest",result.id);mode="lan";activeSide=2;$("#lanHost").hidden=true;$("#lanJoin").hidden=true;$("#selectModeLabel").textContent=MODE_NAMES.lan;fillRoster();showScreen("selectScreen");}catch(e){setLanStatus(e.message);}}
+async function openLanLobby(){mode="lan";lanServerAvailable=false;if(!ownRoomUi)ownRoomUi=createOwnRoomPanel(document);ownRoomUi.reset();$("#lanChooseFighters").hidden=true;$("#lanJoinCodeRow").hidden=false;if(lanInviteUi)lanInviteUi.hide();$("#lanHost").hidden=false;$("#lanJoin").hidden=false;$("#lanHost").disabled=true;$("#lanJoin").disabled=true;showScreen("onlineScreen");setLanStatus("Verificando se o servidor de partidas locais está ativo…");try{const response=await fetch(lanEndpoint("/lan/info"));if(!response.ok)throw new Error("Servidor local indisponível");const info=await response.json();if(!Array.isArray(info.addresses))throw new Error("Resposta inválida do servidor");lanServerAvailable=true;$("#lanHost").disabled=false;$("#lanJoin").disabled=false;showLanAddresses(info.addresses);setLanStatus("No aparelho anfitrião, escolha “Criar partida”.");}catch(e){showLanAddresses([{url:location.origin}]);setLanStatus("Esta versão hospedada permite jogar História, Arcade, Versus local e Treino. Para duas pessoas por Wi‑Fi, execute npm run dev em um computador e conecte os aparelhos à mesma rede.");}}
+function connectLan(role,id){lanRole=role;lanId=id;lanPeerConnected=role==="guest";lanGuestReady=false;lanRemoteInput=Object.assign({},NEUTRAL_INPUT);if(lanEvents)lanEvents.close();lanEvents=new EventSource(lanEndpoint("/lan/events?role="+encodeURIComponent(role)+"&id="+encodeURIComponent(id)));lanEvents.onmessage=event=>{let message;try{message=JSON.parse(event.data);}catch(e){return;}handleLanMessage(message);};lanEvents.onerror=()=>{if(lanRole===role)setLanStatus("Conexão local interrompida. Confira a rede Wi‑Fi e o servidor.");};if(lanInputTimer)clearInterval(lanInputTimer);if(role==="guest")lanInputTimer=setInterval(()=>{if(lanRole!=="guest"||!lanId||screen!=="gameScreen")return;lanPost("/lan/input",{id:lanId,input:humanInput(1)}).catch(()=>{});},50);}
+async function createLanMatch(){
+ try{
+  setLanStatus("Criando sala Wi-Fi…");
+  const result=await lanPost("/lan/host");
+  if(!result.code)throw new Error("Servidor de sala incompatível. Abra pelo instalador Bronx V7 Windows.");
+  lanRoomCode=normalizeRoomCode(result.code);
+  showLanAddresses(result.addresses);connectLan("host",result.id);
+  lanPeerConnected=false;mode="lan";activeSide=1;
+  if(!lanInviteUi)lanInviteUi=createLanInviteUi(document);
+  const chosen=chooseOnlineInviteUrl(location,lanRoomCode);
+  lanInviteUi.show({code:lanRoomCode,url:chosen.url,warning:chosen.warning});
+  if(!ownRoomUi)ownRoomUi=createOwnRoomPanel(document);
+  ownRoomUi.show({code:lanRoomCode,url:chosen.url,warning:chosen.warning});
+  setLanStatus("CÓDIGO DA SUA SALA: "+lanRoomCode+" — envie este código para o jogador 2.");
+  $("#lanHost").hidden=true;$("#lanJoin").hidden=true;
+  $("#lanJoinCodeRow").hidden=true;$("#lanChooseFighters").hidden=false;
+  setLanStatus("CÓDIGO DA SUA SALA: "+lanRoomCode+" · Compartilhe pelo WhatsApp e depois escolha os lutadores.");
+ }catch(e){setLanStatus(e.message);}
+}
+async function joinLanMatch(roomCode){
+ try{
+  let code=normalizeRoomCode(typeof roomCode==="string"?roomCode:"");
+  if(!code){code=normalizeRoomCode($("#lanJoinCode")?.value||"");}
+  if(!code){setLanStatus("Digite os 8 caracteres da sala ou abra o link recebido.");$("#lanJoinCode")?.focus();return;}
+  setLanStatus("Procurando a sala "+code+" nesta rede…");
+  const result=await lanPost("/lan/join",{code});
+  if(!result.id)throw new Error("O servidor não devolveu a identificação do jogador.");
+  connectLan("guest",result.id);mode="lan";activeSide=2;
+  $("#lanHost").hidden=true;$("#lanJoin").hidden=true;
+  $("#selectModeLabel").textContent=MODE_NAMES.lan;
+  fillRoster();showScreen("selectScreen");
+  setLanStatus("Conectado! Escolha seu lutador e confirme para avisar o anfitrião.");
+  if(lanInviteUi)lanInviteUi.hide();
+ }catch(e){setLanStatus(e.message);}
+}
 function lanSnapshot(){if(!match)return null;const fields=["mode","wins","roundNo","roundTicks","status","paused","banner","bannerTicks","projectiles","effects","warnings","assist","assistRoll","assistSpawn","assistSpawnFired","suddenDeath","suddenTicks","result","helpEnabled","hitCount","opponentId","cameraX","worldWidth","worldScale","roundEndTicks","rain"];const state={};fields.forEach(key=>{if(match[key]!==undefined)state[key]=match[key];});state.viewportHeight=viewport.h;return {state,fighters:match.fighters.map(f=>{const copy={};Object.keys(f).forEach(key=>{if(key!=="data"&&key!=="ai")copy[key]=f[key];});copy.fighterId=f.data.definition.id;return copy;})};}
 function sendLanSnapshot(){if(lanRole!=="host"||!lanId||!match)return;lanPost("/lan/snapshot",{id:lanId,snapshot:lanSnapshot()}).catch(()=>{});}
 function sendLanSelection(){if(mode!=="lan"||!lanId||!lanRole)return;const role=lanRole,id=lanId,fighterId=role==="guest"?selected.p2:selected.p1,ready=role==="guest"&&lanGuestReady;lanSelectionQueue=lanSelectionQueue.then(()=>lanPost("/lan/select",{id,role,fighterId,ready})).catch(error=>{if(lanRole===role&&lanId===id){const status=$("#lanSelectStatus");if(status){status.hidden=false;status.textContent="Não foi possível enviar a escolha do personagem. Confira a conexão e tente novamente.";}console.warn("Falha ao sincronizar personagem da partida local:",error);}});}
 function handleLanMessage(message){
- if(message.type==="peer"&&lanRole==="host"){lanPeerConnected=!!message.connected;if(!lanPeerConnected)lanGuestReady=false;if(!lanPeerConnected&&match&&screen==="gameScreen"){lanRemoteInput=Object.assign({},NEUTRAL_INPUT);match.paused=true;$("#pausePanel").hidden=false;$("#pausePanel").querySelector(".eyebrow").textContent="JOGADOR 2 DESCONECTADO";}updateSelection();if(lanPeerConnected)sendLanSelection();return;}
+ if(message.type==="peer"&&lanRole==="host"){lanPeerConnected=!!message.connected;if(!lanPeerConnected)lanGuestReady=false;if(!lanPeerConnected&&match&&screen==="gameScreen"){lanRemoteInput=Object.assign({},NEUTRAL_INPUT);match.paused=true;$("#pausePanel").hidden=false;$("#pausePanel").querySelector(".eyebrow").textContent="JOGADOR 2 DESCONECTADO";}updateSelection();if(screen==="onlineScreen")setLanStatus(lanPeerConnected?"Jogador 2 conectado! Clique em ESCOLHER LUTADORES.":"SUA SALA: "+(lanRoomCode||"SEM CÓDIGO")+" · Aguardando jogador 2.");if(lanPeerConnected)sendLanSelection();return;}
  if(message.type==="selection"&&mode==="lan"){const fighter=BY_ID[message.fighterId];if(!fighter)return;if(lanRole==="host"&&message.player===2){selected.p2=fighter.id;lanGuestReady=!!message.ready;activeSide=1;updateSelection();return;}if(lanRole==="guest"&&message.player===1){selected.p1=fighter.id;activeSide=2;updateSelection();return;}}
  if(message.type==="input"&&lanRole==="host"){lanRemoteInput=Object.assign({},NEUTRAL_INPUT,message.input||{});return;}
  if(message.type==="start"&&lanRole==="guest"){selected={p1:message.p1,p2:message.p2};mode="lan";unlockAudio();beginMatch(message.p2);return;}
@@ -71,7 +111,7 @@ function handleLanMessage(message){
  if(message.type==="hostLeft"&&lanRole==="guest"){disconnectLan(false);match=null;mode="cpu";showScreen("onlineScreen");setLanStatus("O anfitrião encerrou a partida.");return;}
  if(message.type==="waiting"&&lanRole==="guest"){updateSelection();sendLanSelection();}
 }
-function disconnectLan(notify=true){if(lanSnapshotTimer){clearInterval(lanSnapshotTimer);lanSnapshotTimer=0;}if(lanInputTimer){clearInterval(lanInputTimer);lanInputTimer=0;}const role=lanRole,id=lanId;if(lanEvents){lanEvents.close();lanEvents=null;}lanRole=null;lanId=null;lanPeerConnected=false;lanRemoteInput=Object.assign({},NEUTRAL_INPUT);if(notify&&role&&id)lanPost("/lan/leave",{role,id}).catch(()=>{});}
+function disconnectLan(notify=true){if(ownRoomUi)ownRoomUi.reset();if(lanInviteUi)lanInviteUi.hide();lanRoomCode=null;if(lanSnapshotTimer){clearInterval(lanSnapshotTimer);lanSnapshotTimer=0;}if(lanInputTimer){clearInterval(lanInputTimer);lanInputTimer=0;}const role=lanRole,id=lanId;if(lanEvents){lanEvents.close();lanEvents=null;}lanRole=null;lanId=null;lanPeerConnected=false;lanRemoteInput=Object.assign({},NEUTRAL_INPUT);if(notify&&role&&id)lanPost("/lan/leave",{role,id}).catch(()=>{});}
 function image(url){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error("Falha ao carregar "+url));im.src=url;});}
 function loadFighter(id){if(assets[id])return Promise.resolve(assets[id]);const def=BY_ID[id];return fetch(asset("assets/fighters/"+id+"/atlas.json")).then(r=>{if(!r.ok)throw Error("Metadados ausentes: "+def.name);return r.json();}).then(meta=>image(asset("assets/fighters/"+id+"/atlas.png")).then(atlas=>(assets[id]={definition:def,meta:meta,atlas:atlas})));}
 function makeBonusSheet(atlas,rows){
@@ -91,7 +131,7 @@ function fillRoster(){
   const img=document.createElement("img");img.src=asset("assets/fighters/"+f.id+"/portraits/portrait.webp");img.alt=f.name;img.loading="eager";img.decoding="async";
   b.append(img);
   if(mode==="story"&&f.boss){b.disabled=true;b.title="Lorehy é o chefe final da campanha.";}
-  b.onclick=()=>{if(b.disabled)return;if(mode==="lan"&&lanRole==="guest")lanGuestReady=false;selected[activeSide===1?"p1":"p2"]=f.id;if(mode==="cpu"&&activeSide===1)activeSide=2;setFeatured(f.id);if(mode==="lan")sendLanSelection();};
+  b.onclick=()=>{if(b.disabled)return;if(mode==="lan"&&lanRole==="guest")lanGuestReady=false;const choice=selectArcadeFighter(selected,activeSide,f.id,mode);selected=choice.selected;activeSide=choice.activeSide;setFeatured(f.id);if(mode==="lan")sendLanSelection();};
   box.appendChild(b);
  });
  updateSelection();
@@ -108,9 +148,21 @@ function updateSelection(){
  $("#selectP1").classList.toggle("selected",activeSide===1);$("#selectP2").classList.toggle("selected",activeSide===2);
  $("#storyNotice").hidden=mode!=="story";$("#lanSelectStatus").hidden=mode!=="lan";
  if(mode==="lan")$("#lanSelectStatus").textContent=lanGuest?(lanGuestReady?"Personagem confirmado. Aguardando o anfitrião iniciar.":"Escolha seu personagem e confirme para entrar na luta."):lanPeerConnected?(lanGuestReady?"Jogador 2 confirmou "+p2.name+". Pode iniciar a luta.":"Jogador 2 conectado. Aguardando a escolha e confirmação do personagem."):"Aguardando o jogador 2 entrar pelo endereço local.";
- $("#p2SelectHint").textContent=twoPlayer?(mode==="lan"?(lanGuest?"VOCÊ ESCOLHE O PERSONAGEM DO JOGADOR 2":"O JOGADOR 2 ESCOLHE NO OUTRO APARELHO"):"CONTROLE 1 · CONTROLE 2"):"";$("#p1Keys").textContent=lanGuest?"P2: WASD / SETAS":"P1: SETAS / CONTROLE 1";$("#p2Keys").textContent=lanGuest?"ENTER / A CONFIRMA":lanHost?"P2: ESCOLHE NO OUTRO APARELHO":mode==="versus"?"P2: WASD / CONTROLE 2":"";$("#p2Keys").hidden=!twoPlayer;
+ $("#p2SelectHint").textContent=twoPlayer?(mode==="lan"?(lanGuest?"VOCÊ ESCOLHE O PERSONAGEM DO JOGADOR 2":"O JOGADOR 2 ESCOLHE NO OUTRO APARELHO"):(connectedGamepads().length>=2?"CONTROLE 1 · CONTROLE 2":"SELECIONE 1P E 2P · ADVERSÁRIO CPU")):"";$("#p1Keys").textContent=lanGuest?"P2: WASD / SETAS":"P1: SETAS / CONTROLE 1";$("#p2Keys").textContent=lanGuest?"ENTER / A CONFIRMA":lanHost?"P2: ESCOLHE NO OUTRO APARELHO":mode==="versus"?(connectedGamepads().length>=2?"P2: WASD / CONTROLE 2":"2P: ESCOLHA DO ADVERSÁRIO CPU"):"";$("#p2Keys").hidden=!twoPlayer;
  const start=$("#startMatch"),ready=$("#readyFighter");start.hidden=lanGuest;ready.hidden=!lanGuest;ready.disabled=lanGuest&&!lanPeerConnected;ready.firstChild.textContent=lanGuestReady?"LUTADOR CONFIRMADO · AGUARDANDO P1 ":"CONFIRMAR MEU LUTADOR ";
- const row=$("#arcadeHumanRow");row.hidden=mode!=="cpu";$("#arcadeHuman2").disabled=connectedGamepads().length<2;if(connectedGamepads().length<2){arcadeHuman2=false;$("#arcadeHuman2").checked=false;}if(mode==="cpu"){$("#p2SelectHint").textContent=activeSide===1?"ESCOLHENDO 1P":"ESCOLHENDO ADVERSÁRIO 2P";$("#p2Keys").textContent="ESCOLHA 1P OU 2P";}updateVersusAvailability();if(lanHost)start.disabled=!lanPeerConnected||!lanGuestReady;
+ if(mode==="cpu"){
+   $("#p2SelectHint").textContent=activeSide===1?"ESCOLHENDO SEU LUTADOR · 1P":"ESCOLHENDO O ADVERSÁRIO · 2P";
+   $("#p2Keys").textContent="TOQUE EM 1P OU 2P PARA ALTERAR A ESCOLHA";
+   $("#p2Keys").hidden=false;
+ }
+ const arcadeRow=$("#arcadeTwoPlayerRow"),arcadeCheck=$("#arcadeTwoPlayer");
+ if(arcadeRow){const twoPads=connectedGamepads().length>=2;
+  arcadeRow.hidden=mode!=="cpu";
+  arcadeCheck.disabled=!twoPads;
+  if(!twoPads){arcadeTwoPlayers=false;arcadeCheck.checked=false;}
+  arcadeRow.querySelector("small").textContent=twoPads?"Dois controles disponíveis: opcional":"Para jogar contra outra pessoa, conecte dois controles. A escolha de adversário CPU funciona sem controle.";
+ }
+ updateVersusAvailability();if(lanHost)start.disabled=!lanPeerConnected||!lanGuestReady;
  $$(".fighter-card").forEach(b=>{const one=b.dataset.id===selected.p1,two=twoPlayer&&b.dataset.id===selected.p2;b.classList.toggle("selected-p1",one);b.classList.toggle("selected-p2",two);b.setAttribute("aria-pressed",String(one||two));});
 }
 function moveSelectionCursor(side,dx,dy){
@@ -119,7 +171,7 @@ function moveSelectionCursor(side,dx,dy){
  else if(dy){const targetRow=Math.max(0,Math.min(Math.ceil(roster.length/3)-1,row+dy));const candidates=roster.map((fighter,i)=>({fighter,i,row:Math.floor(i/3),col:i===6&&roster.length===7?1:i%3})).filter(item=>item.row===targetRow).sort((a,b)=>Math.abs(a.col-col)-Math.abs(b.col-col));if(candidates.length)next=candidates[0].i;}
  if(next===index){activeSide=side;updateSelection();return;}activeSide=side;if(mode==="lan"&&lanRole==="guest")lanGuestReady=false;selected[key]=roster[next].id;updateSelection();if(mode==="lan")sendLanSelection();document.querySelector('.fighter-card[data-id="'+roster[next].id+'"]')?.focus({preventScroll:true});
 }
-function openMode(next){if(isMobilePortrait())return;if(next==="versus"&&!updateVersusAvailability())return;if(next==="online"){openLanLobby();return;}enterArcadeSession();mode=next;activeSide=1;if(mode==="story"&&selected.p1==="lorehy")selected.p1="daniel";if(mode==="story"&&selected.p2===selected.p1)selected.p2=(FIGHTERS.find(f=>f.id!==selected.p1&&(!f.boss||mode==="cpu"))||FIGHTERS.find(f=>f.id!==selected.p1)).id;$("#selectModeLabel").textContent=MODE_NAMES[mode];fillRoster();updateVersusAvailability();showScreen("selectScreen");}
+function openMode(next){if(isMobilePortrait())return;if(next==="versus")next="cpu";if(next==="cpu")arcadeTwoPlayers=false;if(next==="online"){openLanLobby();return;}enterArcadeSession();mode=next;activeSide=1;if(mode==="story"&&selected.p1==="lorehy")selected.p1="daniel";if(mode!=="versus"&&selected.p2===selected.p1)selected.p2=(FIGHTERS.find(f=>f.id!==selected.p1&&(!f.boss||mode==="cpu"))||FIGHTERS.find(f=>f.id!==selected.p1)).id;$("#selectModeLabel").textContent=MODE_NAMES[mode];fillRoster();updateVersusAvailability();showScreen("selectScreen");}
 function setTouchStyle(){document.documentElement.style.setProperty("--touch-size",(58*settings.touchSize/100)+"px");document.documentElement.style.setProperty("--touch-opacity",String(Math.max(90,settings.touchOpacity)/100));}
 function fillOptions(){const set=(id,v)=>$("#"+id).value=v;const check=(id,v)=>$("#"+id).checked=v;set("difficulty",settings.difficulty);set("roundTime",String(settings.roundSeconds));check("assistEnabled",settings.assistEnabled);check("musicEnabled",settings.musicEnabled);check("sfxEnabled",settings.sfxEnabled);check("voiceEnabled",settings.voiceEnabled);check("fighterVoiceEnabled",settings.fighterVoiceEnabled);set("musicVolume",settings.musicVolume);set("sfxVolume",settings.sfxVolume);set("voiceVolume",settings.voiceVolume);set("touchSize",settings.touchSize);set("touchOpacity",settings.touchOpacity);check("trainingInfiniteHealth",settings.trainingInfiniteHealth);check("trainingInfiniteEnergy",settings.trainingInfiniteEnergy);check("trainingHitboxes",settings.trainingHitboxes);set("trainingDummy",settings.trainingDummy);renderBindings();}
 function readOptions(){settings.difficulty=$("#difficulty").value;settings.roundSeconds=Number($("#roundTime").value)||99;["assistEnabled","musicEnabled","sfxEnabled","voiceEnabled","fighterVoiceEnabled","trainingInfiniteHealth","trainingInfiniteEnergy","trainingHitboxes"].forEach(id=>settings[id]=$("#"+id).checked);["musicVolume","sfxVolume","voiceVolume","touchSize","touchOpacity"].forEach(id=>settings[id]=Number($("#"+id).value));settings.trainingDummy=$("#trainingDummy").value;}
@@ -155,13 +207,13 @@ function announceRound(round){playVoiceClip("rounds/"+(round===1?"ROUND_ONE":rou
 
 async function startSelection(){
  if(isMobilePortrait())return;
- if(mode==="versus"&&!updateVersusAvailability()){const notice=$("#versusSelectNotice");notice.hidden=false;notice.textContent="Conecte e pressione um botão em dois controles para jogar Versus.";return;}
+ if(mode==="versus")updateVersusAvailability();
  if(mode==="lan"&&lanRole!=="host")return;
  if(mode==="lan"&&!lanPeerConnected){const status=$("#lanSelectStatus");status.hidden=false;status.textContent="Aguardando o jogador 2 entrar pelo endereço local.";return;}
  if(mode==="lan"&&!lanGuestReady){const status=$("#lanSelectStatus");status.hidden=false;status.textContent="Aguardando o jogador 2 escolher e confirmar o personagem.";return;}
  enterArcadeSession();requestGameFullscreen();
  if(mode==="story"){primeBossCinemaFromGesture();campaign=storyOpponents(FIGHTERS.filter(f=>!f.boss).map(f=>f.id),selected.p1,"lorehy");campaignIndex=0;beginStoryStep();return;}
- let opponent=selected.p2;if(mode==="cpu"&&arcadeHuman2&&connectedGamepads().length>=2)mode="versus";beginMatch(opponent);
+ let opponent=selected.p2;mode=resolveArcadeMatchMode(mode,arcadeTwoPlayers,connectedGamepads().length);beginMatch(opponent);
 }
 function confirmLanFighter(){if(mode!=="lan"||lanRole!=="guest"||!lanId)return;lanGuestReady=true;updateSelection();sendLanSelection();}
 function beginStoryStep(){if(mode==="story"&&campaign[campaignIndex]==="lorehy")playBossCinema();else beginMatch(campaign[campaignIndex]);}
@@ -184,20 +236,20 @@ async function beginMatch(opponentId){
 }
 function makeFighter(data,player,targetId,gameMode){
  const idle=(data.meta.animations.idle||[]).map(id=>data.meta.frames[id]).filter(Boolean),hs=idle.map(f=>f.height).sort((a,b)=>a-b);
- const cpu=player===2&&(gameMode==="cpu"||gameMode==="story"||gameMode==="training");
- return {data:data,player:player,targetId:targetId,x:0,health:1000,energy:0,facing:player===1?1:-1,state:"idle",stateAge:0,animAge:0,attack:null,hitstun:0,fallTicks:0,getupTicks:0,jumpY:0,jumpVy:0,knockVX:0,bodyHeight:hs.length?hs[Math.floor(hs.length/2)]:240,scale:1,prevInput:{},guardMode:"high",specialCooldown:0,specialConfig:null,specialFired:false,voiceReadyAt:0,ai:cpu?{decision:0,actionTicks:0,action:{},passive:gameMode==="training"&&settings.trainingDummy==="passive"}:null};
+ const cpu=player===2&&(gameMode==="cpu"||gameMode==="story"||gameMode==="training"||(gameMode==="versus"&&connectedGamepads().length<2));
+ return {data:data,player:player,targetId:targetId,x:0,health:1000,energy:0,facing:player===1?1:-1,state:"idle",stateAge:0,animAge:0,attack:null,hitstun:0,fallTicks:0,getupTicks:0,jumpY:0,jumpVy:0,knockVX:0,bodyHeight:hs.length?hs[Math.floor(hs.length/2)]:240,scale:1,prevInput:{},inputBuffer:[],inputTick:0,moveVX:0,dashTicks:0,lastDirectionTap:{direction:0,tick:-100},hitstop:0,comboCount:0,comboConnects:0,guardMode:"high",specialCooldown:0,specialConfig:null,specialFired:false,voiceReadyAt:0,ai:cpu?{decision:0,actionTicks:0,action:{},passive:gameMode==="training"&&settings.trainingDummy==="passive"}:null};
 }
 function setState(f,s,force){if(f.state===s&&!force)return;f.state=s;f.stateAge=0;f.animAge=0;}
 function resetRound(first){
  const arena=stageRect(),H=viewport.h,W=viewport.w;if(!match)return;match.worldScale=H/720;match.worldWidth=arenaWorldWidth();match.cameraX=Math.max(0,(match.worldWidth-W)/2);match.projectiles=[];match.effects=[];match.warnings=[];match.rain=null;match.suddenDeath=false;match.suddenTicks=0;match.assist=null;match.assistRoll=false;match.assistSpawnFired=false;match.roundTicks=settings.roundSeconds*60;match.status="intro";match.banner=match.roundNo===1?"ROUND ONE":match.roundNo===2?"ROUND TWO":"FINAL ROUND";match.bannerTicks=70;announceRound(match.roundNo);
  const targetH=fighterTargetHeight(),x1=match.cameraX+W*.36,x2=match.cameraX+W*.64;
- match.fighters.forEach((f,i)=>{f.x=i===0?x1:x2;f.health=1000;f.energy=first?0:25;f.state="idle";f.stateAge=0;f.animAge=0;f.attack=null;f.hitstun=0;f.fallTicks=0;f.getupTicks=0;f.jumpY=0;f.jumpVy=0;f.knockVX=0;f.prevInput={};f.facing=i===0?1:-1;f.scale=targetH/f.bodyHeight;if(f.ai){f.ai.decision=0;f.ai.actionTicks=0;f.ai.action={};}});
+ match.fighters.forEach((f,i)=>{f.x=i===0?x1:x2;f.health=1000;f.energy=first?0:25;f.state="idle";f.stateAge=0;f.animAge=0;f.attack=null;f.hitstun=0;f.fallTicks=0;f.getupTicks=0;f.jumpY=0;f.jumpVy=0;f.knockVX=0;freshCombatState(f);f.facing=i===0?1:-1;f.scale=targetH/f.bodyHeight;if(f.ai){f.ai.decision=0;f.ai.actionTicks=0;f.ai.action={};}});
  if(match.helpEnabled&&mode!=="training"&&Math.random()<.3){match.assistRoll=true;match.assistSpawn=(18+Math.floor(Math.random()*13))*60;}
 }
 function startNextRound(){if(seriesWinner(match.wins,2)!==null){showMatchResult();return;}match.roundNo++;resetRound(false);}
 function showMatchResult(){
  match.status="matchOver";match.paused=false;const p1=match.wins[0]>match.wins[1],playerWon=mode==="lan"&&lanRole==="guest"?!p1:p1,story=mode==="story",enemy=mode==="lan"&&lanRole==="guest"?match.fighters[0].data.definition.name:BY_ID[match.opponentId].name;
- const localScore=mode==="lan"&&lanRole==="guest"?match.wins[1]:match.wins[0],remoteScore=mode==="lan"&&lanRole==="guest"?match.wins[0]:match.wins[1],panel=$("#resultPanel"),primary=$("#resultPrimary"),menu=$("#resultMenu");panel.hidden=false;panel.classList.toggle("game-over",!playerWon);$("#resultEyebrow").textContent=story?"MODO HISTÓRIA":"PARTIDA ENCERRADA";
+ const localScore=mode==="lan"&&lanRole==="guest"?match.wins[1]:match.wins[0],remoteScore=mode==="lan"&&lanRole==="guest"?match.wins[0]:match.wins[1],panel=$("#resultPanel"),primary=$("#resultPrimary"),menu=$("#resultMenu");panel.hidden=false;const book=$("#bronxBookResult");if(book)book.hidden=!(mode==="lan"||(story&&playerWon&&campaignIndex===campaign.length-1));panel.classList.toggle("game-over",!playerWon);$("#resultEyebrow").textContent=story?"MODO HISTÓRIA":"PARTIDA ENCERRADA";
  $("#resultTitle").textContent=story&&playerWon&&campaignIndex===campaign.length-1?"CAMPEÃO DO BRONX":playerWon?"VITÓRIA":"DERROTA";
  $("#resultCopy").textContent=story?(playerWon?(campaignIndex<campaign.length-1?"Você venceu "+enemy+". A campanha continua.":"Você derrotou Lorehy e encerrou a campanha."):(enemy+" venceu este combate. Você pode tentar novamente.")):(playerWon?"Você venceu "+enemy+" em "+localScore+" a "+remoteScore+".":enemy+" venceu em "+remoteScore+" a "+localScore+".");
  if(story&&playerWon&&campaignIndex<campaign.length-1){
@@ -208,7 +260,7 @@ function showMatchResult(){
   const completedMatch=match;$("#resultTitle").textContent="VITÓRIA";$("#resultCopy").textContent="Próxima luta: "+(next?next.name:"...");primary.hidden=true;menu.hidden=true;playConditionVoice(true);
   setTimeout(()=>{if(match!==completedMatch||screen!=="gameScreen")return;campaignIndex++;panel.hidden=true;beginStoryStep();},1800);return;
  }
- primary.hidden=false;menu.hidden=false;$("#resultBooking").hidden=!(mode==="lan"||(story&&playerWon&&campaignIndex===campaign.length-1));
+ primary.hidden=false;menu.hidden=false;
  if(story&&!playerWon){primary.textContent="TENTAR DE NOVO";primary.onclick=()=>{const id=campaign[campaignIndex];match=null;panel.hidden=true;beginMatch(id);};}
  else if(story){primary.textContent="VOLTAR AO MENU";primary.onclick=()=>{match=null;showScreen("menuScreen");};}
  else{primary.textContent="REVANCHE";primary.onclick=()=>{const id=match.opponentId;match=null;panel.hidden=true;beginMatch(id);};}
@@ -218,7 +270,21 @@ function finishRound(winner,reason){if(!match||match.status!=="fight")return;mat
 function tieBreak(){const a=match.fighters[0],b=match.fighters[1];return timerWinner(a.health,b.health,match.hitCount[0],match.hitCount[1],Math.random());}
 
 function connectedGamepads(){if(!navigator.getGamepads)return [];try{return Array.from(navigator.getGamepads()||[]).filter(pad=>pad&&pad.connected!==false);}catch(e){return [];}}
-function updateVersusAvailability(){const pads=connectedGamepads(),ready=pads.length>=2,button=$(".arcade-choice[data-mode=\"versus\"]"),small=button&&button.querySelector("small"),notice=$("#versusSelectNotice"),start=$("#startMatch"),requiresPads=screen==="selectScreen"&&mode==="versus",lanBlocked=screen==="selectScreen"&&mode==="lan"&&lanRole==="host"&&(!lanPeerConnected||!lanGuestReady);if(button){button.disabled=!ready;button.classList.toggle("unavailable",!ready);button.title=ready?"Dois controles conectados":"Conecte e pressione um botão em dois controles para liberar o Versus.";button.setAttribute("aria-label",ready?"Versus, dois controles conectados":"Versus indisponível. Conecte dois controles.");if(small)small.textContent=ready?"2 CONTROLES PRONTOS":"CONECTE 2 CONTROLES";}if(notice){notice.hidden=mode!=="versus"||ready;if(mode==="versus"&&!ready)notice.textContent="Conecte e pressione um botão em dois controles para jogar Versus.";}if(start){start.disabled=(requiresPads&&!ready)||lanBlocked;start.title=requiresPads&&!ready?"O Versus exige dois controles conectados.":lanBlocked?"Aguarde o jogador 2 escolher e confirmar um personagem.":"";}return ready;}
+function updateVersusAvailability(){
+ const ready=connectedGamepads().length>=2;
+ const button=$(".arcade-choice[data-mode=\"versus\"]");
+ const small=button&&button.querySelector("small"),notice=$("#versusSelectNotice"),start=$("#startMatch");
+ const lanBlocked=screen==="selectScreen"&&mode==="lan"&&lanRole==="host"&&(!lanPeerConnected||!lanGuestReady);
+ if(button){button.disabled=false;button.classList.remove("unavailable");
+  button.title=ready?"Versus entre dois controles":"Escolha 1P e o adversário para enfrentar a CPU";
+  button.setAttribute("aria-label",ready?"Versus, dois jogadores":"Versus, escolha os dois personagens e enfrente a CPU");
+  if(small)small.textContent=ready?"2 JOGADORES · CONTROLES":"1 JOGADOR · ADVERSÁRIO CPU";
+ }
+ if(notice){notice.hidden=!(screen==="selectScreen"&&mode==="versus");
+  notice.textContent=ready?"Dois controles conectados: cada jogador controla seu personagem.":"Escolha o lutador 1 e o adversário (2P). Sem um segundo controle, o adversário será controlado pela CPU.";}
+ if(start){start.disabled=lanBlocked;start.title=lanBlocked?"Aguarde o jogador 2 escolher e confirmar um personagem.":"";}
+ return true;
+}
 function readPad(player){
  const pad=connectedGamepads()[player-1];if(!pad)return null;
  const buttons=pad.buttons||[];
@@ -250,33 +316,125 @@ function aiInput(f,target){
  else if(Math.random()<profile.blockChance*.45){act.guard=true;ai.actionTicks=8;}
  ai.action=act;return act;
 }
-function beginAttack(f,type){const def=moves.moves[type]||moves.moves.punch;f.attack={type:type,move:def,age:0,hitDone:false};setState(f,"attack",true);speakFighter(f,"attack");if(type==="air"&&f.jumpY<=0){f.jumpVy=520*match.worldScale;f.jumpY=1;}}
-function beginSpecial(f){const spec=moves.specials[f.data.definition.id];if(!spec||f.energy<spec.energyCost||f.specialCooldown>0)return;f.energy-=spec.energyCost;f.specialCooldown=spec.cooldownTicks;f.specialFired=false;f.specialConfig=spec;f.attack=null;setState(f,"special",true);speakFighter(f,"special");sound("special");}
+function beginAttack(f,type,chain=false){
+ const def=moves.moves[type]||moves.moves.punch;
+ f.comboCount=chain?Math.min(MAX_CHAIN,(f.comboCount||1)+1):1;
+ f.attack={type,move:def,age:0,hitDone:false,blocked:false};
+ f.moveVX=0;f.dashTicks=0;
+ setState(f,"attack",true);speakFighter(f,"attack");
+ if(type==="air"&&f.jumpY<=0){f.jumpVy=520*match.worldScale;f.jumpY=1;}
+}
+function beginSpecial(f){
+ const spec=moves.specials[f.data.definition.id];
+ if(!spec||f.energy<spec.energyCost||f.specialCooldown>0)return false;
+ f.energy-=spec.energyCost;f.specialCooldown=spec.cooldownTicks;
+ f.specialFired=false;f.specialConfig=spec;f.attack=null;f.moveVX=0;f.dashTicks=0;
+ setState(f,"special",true);speakFighter(f,"special");sound("special");
+ return true;
+}
+// Every frame of input is captured BEFORE checking animation locks.
+// This fixes missed presses during hitstop, recovery and special startup.
 function processInput(f,input){
- const edge={punch:input.punch&&!f.prevInput.punch,kick:input.kick&&!f.prevInput.kick,up:input.up&&!f.prevInput.up,special:input.special&&!f.prevInput.special};f.prevInput=Object.assign({},input);
+ captureInput(f,input);
  if(f.specialCooldown>0)f.specialCooldown--;
  if(mode==="training"&&settings.trainingInfiniteEnergy)f.energy=100;
- if(["hit","blockstun","fall","getup","special","attack","win","lose"].includes(f.state))return;
- if(edge.special&&f.energy>=100){beginSpecial(f);return;}
- if(f.jumpY<=0&&edge.up){f.jumpVy=1080*match.worldScale;f.jumpY=1;setState(f,"jump",true);sound("jump");}
- if(edge.punch||edge.kick){if(f.jumpY>0){beginAttack(f,"air");return;}if(input.down&&edge.kick){beginAttack(f,"low");return;}if(edge.punch&&Math.sign(input.direction)===f.facing){beginAttack(f,"uppercut");return;}beginAttack(f,edge.kick?"kick":"punch");return;}
- if(input.guard){f.guardMode=input.down?"low":"high";setState(f,"guard");return;}
- if(input.down&&f.jumpY<=0){setState(f,"crouch");return;}
- if(f.jumpY>0){if(input.direction)f.x+=input.direction*460*match.worldScale/60;setState(f,"jump");return;}
- if(input.direction){f.x+=input.direction*220*match.worldScale/60;setState(f,"walk");}else setState(f,"idle");
+}
+function handleFreeInput(f,input){
+ const special=peekBuffered(f,["special"]);
+ if(special&&f.energy>=100&&f.specialCooldown<=0){takeBuffered(f,["special"]);if(beginSpecial(f))return;}
+ const jump=f.jumpY<=0?takeBuffered(f,["up"]):null;
+ if(jump){f.jumpVy=950*match.worldScale;f.jumpY=1;f.moveVX*=.65;setState(f,"jump",true);sound("jump");}
+ const command=takeBuffered(f,["punch","kick"]);
+ if(command){beginAttack(f,chooseAttack(f,command));return;}
+ if(f.jumpY>0){
+  const target=Number(input.direction||0)*225*match.worldScale;
+  f.moveVX=approach(f.moveVX,target,36*match.worldScale);
+  f.x+=f.moveVX/60;setState(f,"jump");return;
+ }
+ if(input.guard){
+  f.moveVX=approach(f.moveVX,0,75*match.worldScale);
+  f.dashTicks=0;f.guardMode=input.down?"low":"high";
+  setState(f,"guard");return;
+ }
+ if(input.down){f.moveVX=approach(f.moveVX,0,75*match.worldScale);f.dashTicks=0;setState(f,"crouch");return;}
+ const dir=Number(input.direction||0),sign=Math.sign(dir);
+ const backing=sign&&sign!==f.facing;
+ let speed=(backing?205:265)*match.worldScale;
+ if(f.dashTicks>0&&sign===f.dashDirection){speed=475*match.worldScale;f.dashTicks--;}
+ else f.dashTicks=0;
+ f.moveVX=approach(f.moveVX,speed*dir,65*match.worldScale);
+ f.x+=f.moveVX/60;
+ if(Math.abs(f.moveVX)>6*match.worldScale)setState(f,"walk");else setState(f,"idle");
 }
 function animName(f){if(f.state==="attack")return f.attack.type==="kick"?"kick":f.attack.type==="low"?"low":f.attack.type==="air"?"airAttack":f.attack.type==="uppercut"?"uppercut":"light";if(f.state==="special")return "specialBody";if(f.state==="walk")return "walk";if(f.state==="crouch")return "crouch";if(f.state==="jump")return "jump";if(f.state==="guard"||f.state==="blockstun")return f.guardMode==="low"?"guardLow":"guardHigh";if(f.state==="hit")return "hurt";if(f.state==="fall"||f.state==="lose")return "fall";if(f.state==="getup")return "getup";if(f.state==="win")return "victory";return "idle";}
-function currentFrame(f){const name=animName(f),animations=f.data.meta.animations,ids=(animations[name]&&animations[name].length?animations[name]:name==="airAttack"&&animations.kick&&animations.kick.length?animations.kick:animations.idle)||[];if(!ids.length)return null;let i=0;if(f.state==="attack"&&f.attack)i=Math.min(ids.length-1,Math.floor(f.attack.age/Math.max(1,(f.attack.move.startup+f.attack.move.active+f.attack.move.recovery)/ids.length)));else if(["special","fall","getup","hit","blockstun","win","lose"].includes(f.state))i=Math.min(ids.length-1,Math.floor(f.stateAge/7));else i=Math.floor(f.animAge/7)%ids.length;return f.data.meta.frames[ids[i]]||null;}
+function currentFrame(f){
+ const name=animName(f),animations=f.data.meta.animations;
+ const ids=(animations[name]&&animations[name].length?animations[name]:name==="airAttack"&&animations.kick&&animations.kick.length?animations.kick:animations.idle)||[];
+ if(!ids.length)return null;
+ let i=0;
+ if(f.state==="attack"&&f.attack){
+  const impact=impactPoseIndex(ids.map(id=>f.data.meta.frames[id]));
+  i=attackPoseIndex(f.attack.age,f.attack.move,ids.length,impact);
+ }else if(f.state==="special"){
+  const duration=f.specialConfig?f.specialConfig.startup+f.specialConfig.recovery:45;
+  i=Math.min(ids.length-1,Math.floor((f.stateAge/Math.max(1,duration))*ids.length));
+ }else if(["fall","getup","hit","blockstun","win","lose"].includes(f.state)){
+  const interval=f.state==="hit"?Math.max(3,Math.floor(Math.max(1,f.hitstun)/ids.length)):7;
+  i=Math.min(ids.length-1,Math.floor(f.stateAge/interval));
+ }else if(f.state==="guard"||f.state==="crouch"){
+  i=f.state==="crouch"||f.guardMode==="low"?ids.length-1:Math.min(1,ids.length-1); // Hold the completed defensive pose.
+ }else i=Math.floor(f.animAge/(f.state==="walk"?5:7))%ids.length;
+ return f.data.meta.frames[ids[i]]||null;
+}
 function updateFighter(f,target,index){
- f.animAge++;f.stateAge++;f.facing=target.x>=f.x?1:-1;f.x+=f.knockVX/60;f.knockVX*=.84;if(Math.abs(f.knockVX)<3)f.knockVX=0;
- if(f.jumpY>0){f.jumpY+=f.jumpVy/60;f.jumpVy-=1800*match.worldScale/60;if(f.jumpY<=0){f.jumpY=0;f.jumpVy=0;if(f.state==="jump")setState(f,"idle");}}
- if(f.state==="hit"||f.state==="blockstun"){if(--f.hitstun<=0)setState(f,"idle");clampArena(f);return;}
- if(f.state==="fall"){if(--f.fallTicks<=0){setState(f,"getup");f.getupTicks=34;}clampArena(f);return;}
- if(f.state==="getup"){if(--f.getupTicks<=0)setState(f,"idle");clampArena(f);return;}
- if(f.state==="attack"&&f.attack){const a=f.attack,mv=a.move;a.age++;if(!a.hitDone&&isMoveActive(a.age,mv)){resolveMelee(f,target,a);if(a.hitDone&&match.suddenDeath)finishRound(index,"hit");}if(a.age>=mv.startup+mv.active+mv.recovery){f.attack=null;setState(f,"idle");}clampArena(f);return;}
- if(f.state==="special"){if(!f.specialFired&&f.stateAge>=f.specialConfig.startup){f.specialFired=true;spawnSpecial(f,target,f.specialConfig);}if(f.stateAge>=f.specialConfig.startup+f.specialConfig.recovery)setState(f,"idle");clampArena(f);return;}
+ // Keep the existing input paths: keyboard, two controllers, touch, LAN and CPU.
+ const input=f.ai?aiInput(f,target):(mode==="lan"&&lanRole==="host"&&f.player===2?lanRemoteInput:humanInput(f.player));
+ processInput(f,input);
+ if(f.hitstop>0){f.hitstop--;clampArena(f);return;}
+ f.animAge++;f.stateAge++;
+ f.facing=target.x>=f.x?1:-1;
+ f.x+=f.knockVX/60;f.knockVX*=.79;if(Math.abs(f.knockVX)<3)f.knockVX=0;
+ if(f.jumpY>0){f.jumpY+=f.jumpVy/60;f.jumpVy-=1900*match.worldScale/60;
+  if(f.jumpY<=0){f.jumpY=0;f.jumpVy=0;if(f.state==="jump")setState(f,"idle");}}
+ if(f.state==="hit"||f.state==="blockstun"){
+  f.moveVX=approach(f.moveVX,0,90*match.worldScale);
+  if(--f.hitstun<=0)setState(f,"idle");clampArena(f);return;
+ }
+ if(f.state==="fall"){
+  f.moveVX=0;
+  if(--f.fallTicks<=0){setState(f,"getup");f.getupTicks=31;}
+  clampArena(f);return;
+ }
+ if(f.state==="getup"){
+  f.moveVX=0;if(--f.getupTicks<=0)setState(f,"idle");clampArena(f);return;
+ }
+ if(f.state==="attack"&&f.attack){
+  const a=f.attack,mv=a.move;a.age++;
+  if(!a.hitDone&&isMoveActive(a.age,mv)){
+   resolveMelee(f,target,a);
+   if(a.hitDone&&match.suddenDeath)finishRound(index,"hit");
+  }
+  if(f.state!=="attack"||f.attack!==a){clampArena(f);return;}
+  if(canCancel(a)){
+   if(f.energy>=100&&f.specialCooldown<=0&&peekBuffered(f,["special"])){
+    takeBuffered(f,["special"]);beginSpecial(f);clampArena(f);return;
+   }
+   if(f.comboCount<MAX_CHAIN){
+    const cmd=takeBuffered(f,["punch","kick"]);
+    if(cmd){beginAttack(f,chooseAttack(f,cmd),true);clampArena(f);return;}
+   }
+  }
+  const total=mv.startup+mv.active+mv.recovery;
+  if(a.age>=total){f.attack=null;setState(f,"idle");handleFreeInput(f,input);}
+  clampArena(f);return;
+ }
+ if(f.state==="special"){
+  if(!f.specialFired&&f.stateAge>=f.specialConfig.startup){f.specialFired=true;spawnSpecial(f,target,f.specialConfig);}
+  if(f.stateAge>=f.specialConfig.startup+f.specialConfig.recovery){setState(f,"idle");handleFreeInput(f,input);}
+  clampArena(f);return;
+ }
  if(f.state==="win"||f.state==="lose"){clampArena(f);return;}
- processInput(f,f.ai?aiInput(f,target):(mode==="lan"&&lanRole==="host"&&f.player===2?lanRemoteInput:humanInput(f.player)));clampArena(f);
+ handleFreeInput(f,input);clampArena(f);
 }
 function stageRect(){const iw=stage.naturalWidth||16,ih=stage.naturalHeight||9,scale=Math.max(viewport.w/iw,viewport.h/ih),w=iw*scale,h=ih*scale;return {x:(viewport.w-w)/2,y:(viewport.h-h)/2,w:w,h:h};}
 function arenaWorldWidth(){const r=stageRect();return r.w+Math.max(viewport.w*.3,80*(viewport.h/720));}
@@ -284,14 +442,38 @@ function fighterTargetHeight(){return viewport.h>viewport.w?Math.min(viewport.h*
 function arenaLimits(){const margin=Math.max(28,Math.min(viewport.w*.075,60*(viewport.h/720)));return {left:margin,right:(match&&match.worldWidth||arenaWorldWidth())-margin};}
 function clampArena(f){const limits=arenaLimits(),edge=Math.max(24,f.bodyHeight*f.scale*.12);f.x=Math.max(limits.left+edge,Math.min(limits.right-edge,f.x));}
 function groundY(){return viewport.h*.93;}
-function hurtBox(f){const h=f.bodyHeight*f.scale,w=h*.32,crouch=f.state==="crouch"||(f.guardMode==="low"&&(f.state==="guard"||f.state==="blockstun")),boxH=h*(crouch?.52:.84),center=groundY()-f.jumpY-boxH/2;return {x:f.x-w/2,y:center-boxH/2,w:w,h:boxH};}
-function hitBox(f,mv){const h=hurtBox(f),w=mv.range*f.bodyHeight*f.scale*.65,base=groundY()-f.jumpY,height=mv.hitHeight*f.bodyHeight*f.scale,y=mv.hitLevel==="low"?base-height*.8:base-h.h*.72;return {x:f.facing>0?f.x+h.w*.25:f.x-h.w*.25-w,y:y,w:w,h:height};}
-function resolveMelee(a,t,attack){const hb=hurtBox(t),b=hitBox(a,attack.move);if(!boxesOverlap(b,hb))return;attack.hitDone=true;applyHit(a,t,attack.move.damage,attack.move,attack.move.hitLevel);}
+function hurtBox(f){return bodyHurtBox(f,currentFrame(f),groundY());}
+function hitBox(f,mv){return strikeHitBox(f,mv,currentFrame(f),groundY(),f.attack&&f.attack.type||"punch");}
+function resolveMelee(a,t,attack){
+ if(t.state==="fall"||t.state==="getup"||t.state==="lose")return;
+ const target=hurtBox(t),strike=hitBox(a,attack.move);
+ if(!boxesOverlap(strike,target))return;
+ attack.hitDone=true;
+ attack.blocked=applyHit(a,t,adjustedDamage(attack.move.damage,a.comboCount),attack.move,attack.move.hitLevel);
+}
 function applyHit(a,t,damage,mv,level){
- const blocked=blocksHit(t.state==="guard",t.guardMode,level);t.attack=null;t.knockVX=a.facing*(mv.knockback||90)*match.worldScale;
- if(blocked){t.hitstun=mv.blockstun||10;setState(t,"blockstun",true);speakFighter(t,"block");sound("block");}
- else{t.health=damageHealth(t.health,damage,mode==="training"&&settings.trainingInfiniteHealth&&t.player===1);t.hitstun=mv.hitstun||24;if(damage>=120){setState(t,"fall",true);t.fallTicks=58;}else setState(t,"hit",true);speakFighter(t,"hit");a.energy=Math.min(100,a.energy+(mv.energy||8));t.energy=Math.min(100,t.energy+4);match.hitCount[a.player-1]++;sound("hit");if(t.health<=0){t.health=0;finishRound(a.player-1,"ko");}}
+ const blocked=blocksHit(t.state==="guard"||t.state==="blockstun",t.guardMode,level);
+ t.attack=null;t.comboCount=0;t.inputBuffer=[];t.moveVX=0;t.dashTicks=0;
+ const impact=Math.min(7,2+Math.ceil(damage/36));
+ a.hitstop=Math.max(a.hitstop||0,blocked?2:impact);
+ t.hitstop=Math.max(t.hitstop||0,blocked?2:impact);
+ t.knockVX=a.facing*(mv.knockback||80)*match.worldScale*(blocked?.48:1);
+ if(blocked){
+  t.hitstun=mv.blockstun||9;setState(t,"blockstun",true);speakFighter(t,"block");sound("block");
+ }else{
+  t.health=damageHealth(t.health,damage,mode==="training"&&settings.trainingInfiniteHealth&&t.player===1);
+  t.hitstun=mv.hitstun||22;
+  const knockedDown=damage>=120||t.health<=0;
+  if(knockedDown){setState(t,"fall",true);t.fallTicks=55;}
+  else setState(t,"hit",true);
+  speakFighter(t,"hit");a.energy=Math.min(100,a.energy+(mv.energy||8));t.energy=Math.min(100,t.energy+4);
+  match.hitCount[a.player-1]++;sound("hit");
+  match.effects.push({x:t.x,y:groundY()-t.bodyHeight*t.scale*.54,age:0,life:16});
+  if(a.attack&&a.comboCount>1)match.effects.push({x:t.x,y:groundY()-t.bodyHeight*t.scale*.78,age:0,life:43,text:a.comboCount+" HIT COMBO"});
+  if(t.health<=0){t.health=0;finishRound(a.player-1,"ko");}
+ }
  a.energy=Math.min(100,a.energy+2);
+ return blocked;
 }
 function spawnSpecial(f,target,spec){
  const ids=Object.values(f.data.meta.frames).filter(x=>x.role===spec.projectileRole).sort((a,b)=>a.sourceColumn-b.sourceColumn).map(x=>x.id),scale=match.worldScale*f.scale;
@@ -376,8 +558,8 @@ function drawHud(){
 function drawFighter(f){
  const fr=currentFrame(f);if(!fr)return;const scale=f.scale,r=fr.atlasRect,p=fr.pivot,hb=hurtBox(f),floor=groundY()-f.jumpY;
  const shadowWidth=Math.max(30,f.bodyHeight*f.scale*.22);ctx.save();ctx.translate(f.x,groundY()+3);ctx.scale(1,.2);const shadow=ctx.createRadialGradient(0,0,2,0,0,shadowWidth);shadow.addColorStop(0,"rgba(0,0,0,.58)");shadow.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=shadow;ctx.beginPath();ctx.arc(0,0,shadowWidth,0,Math.PI*2);ctx.fill();ctx.restore();
- ctx.save();ctx.globalAlpha=f.state==="hit"&&f.stateAge<5&&f.stateAge%2?.45:1;ctx.translate(f.x,floor);if(f.facing<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;ctx.drawImage(f.data.atlas,r.x,r.y,r.width,r.height,-p.x*scale,-p.y*scale,fr.width*scale,fr.height*scale);ctx.restore();
- if(mode==="training"&&settings.trainingHitboxes){ctx.strokeStyle="rgba(100,222,255,.92)";ctx.lineWidth=2;ctx.strokeRect(hb.x,hb.y,hb.w,hb.h);if(f.state==="attack"&&f.attack){const b=hitBox(f,f.attack.move);ctx.strokeStyle="rgba(255,88,111,.95)";ctx.strokeRect(b.x,b.y,b.w,b.h);}}
+ ctx.save();ctx.globalAlpha=f.state==="hit"&&f.stateAge<5&&f.stateAge%2?.45:1;ctx.translate(f.x+(f.state==="hit"?Math.sin(f.stateAge*2.9)*2.4*f.scale:0),floor);if(f.facing<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;ctx.drawImage(f.data.atlas,r.x,r.y,r.width,r.height,-p.x*scale,-p.y*scale,fr.width*scale,fr.height*scale);ctx.restore();
+ if(mode==="training"&&settings.trainingHitboxes){ctx.strokeStyle="rgba(100,222,255,.92)";ctx.lineWidth=2;ctx.strokeRect(hb.x,hb.y,hb.w,hb.h);if(f.state==="attack"&&f.attack&&isMoveActive(f.attack.age,f.attack.move)){const b=hitBox(f,f.attack.move);ctx.strokeStyle="rgba(255,88,111,.95)";ctx.strokeRect(b.x,b.y,b.w,b.h);}}
 }
 function drawThrownTowel(towel){
  const scale=match.worldScale;ctx.save();ctx.translate(towel.x,towel.y);ctx.rotate(towel.age*.16*towel.direction);ctx.lineWidth=Math.max(1,1.4*scale);ctx.fillStyle="#f4f0e5";ctx.strokeStyle="rgba(74,69,63,.75)";ctx.shadowColor="rgba(0,0,0,.42)";ctx.shadowBlur=5*scale;
@@ -398,7 +580,7 @@ function draw(){if(!ctx)return;drawStage();if(match){ctx.save();ctx.translate(-m
 function gamepadButton(pad,index){return !!(pad&&pad.buttons&&pad.buttons[index]&&pad.buttons[index].pressed);}
 function gamepadDirections(pad){if(!pad)return {dx:0,dy:0};const axisX=pad.axes&&pad.axes.length?pad.axes[0]||0:0,axisY=pad.axes&&pad.axes.length?pad.axes[1]||0:0;return {dx:Math.abs(axisX)>.32?(axisX<0?-1:1):gamepadButton(pad,14)?-1:gamepadButton(pad,15)?1:0,dy:Math.abs(axisY)>.45?(axisY<0?-1:1):gamepadButton(pad,12)?-1:gamepadButton(pad,13)?1:0};}
 function pollGamepadUi(dt){if(isMobilePortrait())return;const pads=connectedGamepads();updateVersusAvailability();gamepadNavCooldown=Math.max(0,gamepadNavCooldown-dt);for(let i=0;i<2;i++)gamepadSelectCooldown[i]=Math.max(0,gamepadSelectCooldown[i]-dt);for(let i=0;i<2;i++){const pad=pads[i],held=gamepadUiHeld[i];if(!pad){held.confirm=held.start=held.cancel=false;continue;}if(remap&&remap.type==="pad"){const buttonIndex=pad.buttons?pad.buttons.findIndex(b=>b.pressed):-1;if(buttonIndex>=0)assignPad(buttonIndex);held.confirm=gamepadButton(pad,0);held.start=gamepadButton(pad,9);held.cancel=gamepadButton(pad,1)||gamepadButton(pad,8);continue;}const confirm=gamepadButton(pad,0),start=gamepadButton(pad,9),cancel=gamepadButton(pad,1)||gamepadButton(pad,8),confirmEdge=confirm&&!held.confirm,startEdge=start&&!held.start,cancelEdge=cancel&&!held.cancel;held.confirm=confirm;held.start=start;held.cancel=cancel;const side=i+1,direction=gamepadDirections(pad);if(screen==="menuScreen"&&i===0){const move=direction.dx||direction.dy;if(move&&gamepadNavCooldown<=0){const choices=$$(".arcade-choice:not(:disabled)");menuCursor=(menuCursor+(move<0?-1:1)+choices.length)%choices.length;choices[menuCursor]?.focus();gamepadNavCooldown=170;}if(confirmEdge||startEdge){$$(".arcade-choice:not(:disabled)")[menuCursor]?.click();}}
-if(screen==="selectScreen"){const guestLan=mode==="lan"&&lanRole==="guest",hostLan=mode==="lan"&&lanRole==="host",selectionSide=guestLan?2:(mode==="cpu"?activeSide:side),canChoose=guestLan?i===0:hostLan?i===0:side===1||mode==="versus";if(canChoose&&(direction.dx||direction.dy)&&gamepadSelectCooldown[i]<=0){moveSelectionCursor(selectionSide,direction.dx,direction.dy);gamepadSelectCooldown[i]=170;}if(guestLan&&i===0&&(confirmEdge||startEdge))confirmLanFighter();else if(!guestLan&&side===1&&(confirmEdge||startEdge))startSelection();if(cancelEdge&&i===0){if(lanRole)disconnectLan();mode="cpu";showScreen("menuScreen");}}
+if(screen==="selectScreen"){const guestLan=mode==="lan"&&lanRole==="guest",hostLan=mode==="lan"&&lanRole==="host",selectionSide=guestLan?2:((mode==="versus"||mode==="cpu")?activeSide:side),canChoose=guestLan?i===0:hostLan?i===0:side===1||mode==="versus";if(canChoose&&(direction.dx||direction.dy)&&gamepadSelectCooldown[i]<=0){moveSelectionCursor(selectionSide,direction.dx,direction.dy);gamepadSelectCooldown[i]=170;}if(guestLan&&i===0&&(confirmEdge||startEdge))confirmLanFighter();else if(!guestLan&&side===1&&(confirmEdge||startEdge))startSelection();if(cancelEdge&&i===0){if(lanRole)disconnectLan();mode="cpu";showScreen("menuScreen");}}
  if(screen==="gameScreen"&&i===0){if(startEdge){if(match&&match.paused)resumeGame();else pauseGame();}if(match&&match.paused){const directionStep=direction.dy||direction.dx;if(directionStep&&gamepadNavCooldown<=0){const items=[$("#resumeButton"),$("#pauseOptions"),$("#pauseQuit")];gamepadPauseIndex=(gamepadPauseIndex+(directionStep>0?1:-1)+items.length)%items.length;items[gamepadPauseIndex].focus({preventScroll:true});gamepadNavCooldown=170;}if(confirmEdge){const focused=document.activeElement;if($("#pausePanel").contains(focused))focused.click();else resumeGame();}if(cancelEdge)resumeGame();}if(match&&match.status==="matchOver"&&confirmEdge)$("#resultPrimary").click();}}
 }
 function loop(now){if(!last)last=now;let dt=Math.min(100,now-last);last=now;if(match&&screen==="gameScreen"&&!match.paused&&!isMobilePortrait()&&!(mode==="lan"&&lanRole==="guest")){acc+=dt;const tick=1000/60;while(acc>=tick){updateMatch();acc-=tick;}}else acc=0;pollGamepadUi(dt);gamepadStatus();requestAnimationFrame(loop);}
@@ -412,7 +594,8 @@ function startApp(){
  $$(".arcade-choice[data-mode]").forEach(b=>b.addEventListener("click",()=>{enterArcadeSession();const choices=$$(".arcade-choice:not(:disabled)");menuCursor=Math.max(0,choices.indexOf(b));unlockAudio();sound("menu");openMode(b.dataset.mode);}));
  $$(".arcade-choice:not(:disabled)")[0]?.focus();
  $("#menuOptionsButton").onclick=()=>{previousScreen="menuScreen";showScreen("optionsScreen");};
- $("#lanHost").onclick=createLanMatch;$("#lanJoin").onclick=joinLanMatch;$("#copyOwnRoom").onclick=()=>navigator.clipboard?.writeText(ownRoomCode).catch(()=>{});$("#lanChooseFighters").onclick=()=>{if(lanRole==="host")openMode("lan");};$("#arcadeHuman2").onchange=e=>{arcadeHuman2=e.target.checked&&connectedGamepads().length>=2;};$("#lanBack").onclick=()=>{if(lanRole)disconnectLan();match=null;mode="cpu";showScreen("menuScreen");};
+ $("#lanHost").onclick=createLanMatch;$("#lanJoin").onclick=()=>joinLanMatch("");$("#lanChooseFighters").onclick=()=>{if(lanRole==="host")openMode("lan");};
+  $("#arcadeTwoPlayer").onchange=event=>{arcadeTwoPlayers=Boolean(event.target.checked&&connectedGamepads().length>=2);updateSelection();};$("#lanBack").onclick=()=>{if(lanRole)disconnectLan();match=null;mode="cpu";showScreen("menuScreen");};
  $$("[data-screen]").forEach(b=>b.addEventListener("click",()=>{if(lanRole){disconnectLan();mode="cpu";}showScreen(b.dataset.screen);}));
   $("#startMatch").onclick=startSelection;$("#fullscreenButton").onclick=requestGameFullscreen;
  $("#readyFighter").onclick=confirmLanFighter;
@@ -446,8 +629,8 @@ function startApp(){
    if(e.code==="Escape"&&screen==="optionsScreen"){e.preventDefault();returnFromOptions();return;}
    if(e.code==="Escape"&&screen==="gameScreen"){if(match&&match.paused)resumeGame();else pauseGame();return;}
   if(screen==="selectScreen"){
-   const directions={ArrowLeft:[1,-1,0],ArrowRight:[1,1,0],ArrowUp:[1,0,-1],ArrowDown:[1,0,1],KeyA:[2,-1,0],KeyD:[2,1,0],KeyW:[2,0,-1],KeyS:[2,0,1]};let move=directions[e.code];if(mode==="lan"&&lanRole==="guest"&&move)move=[2,move[1],move[2]];if(mode==="lan"&&lanRole==="host"&&move&&move[0]===2)move=null;
-   if(move&&(move[0]===1||mode==="cpu"||mode==="versus"||mode==="lan"&&lanRole==="guest")){e.preventDefault();moveSelectionCursor(mode==="cpu"?activeSide:move[0],move[1],move[2]);return;}
+   const directions={ArrowLeft:[1,-1,0],ArrowRight:[1,1,0],ArrowUp:[1,0,-1],ArrowDown:[1,0,1],KeyA:[2,-1,0],KeyD:[2,1,0],KeyW:[2,0,-1],KeyS:[2,0,1]};let move=directions[e.code];if((mode==="versus"||mode==="cpu")&&move)move=[activeSide,move[1],move[2]];if(mode==="lan"&&lanRole==="guest"&&move)move=[2,move[1],move[2]];if(mode==="lan"&&lanRole==="host"&&move&&move[0]===2)move=null;
+   if(move&&(move[0]===1||mode==="versus"||mode==="cpu"||mode==="lan"&&lanRole==="guest")){e.preventDefault();moveSelectionCursor(move[0],move[1],move[2]);return;}
    if(["KeyA","KeyD","KeyW","KeyS"].includes(e.code))e.preventDefault();
    if(e.code==="Enter"||e.code==="Space"){if(mode==="lan"&&lanRole==="guest")confirmLanFighter();else startSelection();return;}
   }
@@ -460,6 +643,13 @@ function startApp(){
  window.addEventListener("pointerdown",()=>{enterArcadeSession();unlockAudio();},{once:true});
  window.addEventListener("gamepadconnected",gamepadStatus);window.addEventListener("gamepaddisconnected",gamepadStatus);
  resizeCanvas();requestAnimationFrame(draw);requestAnimationFrame(loop);
+  const urlCode=getJoinCodeFromUrl(location);
+  if(urlCode){
+   Promise.resolve().then(async()=>{
+    await openLanLobby();
+    if(lanServerAvailable)await joinLanMatch(urlCode);
+   });
+  }
 }
 fetch(new URL("./moves.json",import.meta.url)).then(r=>r.json()).then(d=>{moves=d;return fetch(new URL("./ai.json",import.meta.url));}).then(r=>r.json()).then(d=>{aiProfiles=d;startApp();}).catch(e=>{console.error(e);document.body.innerHTML="<p style='padding:30px;color:white'>Falha ao carregar os dados. Abra pelo servidor local descrito no README.</p>";});
 
